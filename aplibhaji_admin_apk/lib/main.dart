@@ -58,10 +58,21 @@ class _WebViewScreenState extends State<WebViewScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       body: SafeArea(
         child: Stack(
           children: [
-            WebViewWidget(controller: _controller),
+            WebViewWidget(
+              controller: _controller,
+              gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
+                Factory<VerticalDragGestureRecognizer>(
+                  () => VerticalDragGestureRecognizer(),
+                ),
+                Factory<TapGestureRecognizer>(
+                  () => TapGestureRecognizer(),
+                ),
+              },
+            ),
             if (_isLoading)
               const Center(
                 child: CircularProgressIndicator(color: Colors.green),
