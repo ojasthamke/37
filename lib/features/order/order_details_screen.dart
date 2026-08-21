@@ -279,7 +279,7 @@ class OrderDetailsScreen extends ConsumerWidget {
   Color _getStatusColor(String status) {
     switch (status) {
       case 'Pending':
-        return Colors.amber[850]!;
+        return Colors.amber[800]!;
       case 'Confirmed':
         return Colors.blue[700]!;
       case 'Preparing':
@@ -310,9 +310,9 @@ class OrderDetailsScreen extends ConsumerWidget {
       return '${qty.toInt()} g';
     } else {
       if (qty == qty.toInt()) {
-        return '${qty.toInt()} ${unit}';
+        return '${qty.toInt()} $unit';
       }
-      return '${qty.toStringAsFixed(1)} ${unit}';
+      return '${qty.toStringAsFixed(1)} $unit';
     }
   }
 }
