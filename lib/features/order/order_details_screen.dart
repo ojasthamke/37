@@ -207,7 +207,7 @@ class OrderDetailsScreen extends ConsumerWidget {
                                   ),
                                   Padding(
                                     padding: const EdgeInsets.symmetric(vertical: 12.0),
-                                    child: Text('${item['quantity']} ${item['unit']}'),
+                                    child: Text(_formatQuantity((item['quantity'] as num?)?.toDouble() ?? 0.0, item['unit'] ?? '')),
                                   ),
                                   Padding(
                                     padding: const EdgeInsets.symmetric(vertical: 12.0),
@@ -290,8 +290,27 @@ class OrderDetailsScreen extends ConsumerWidget {
         return Colors.green[700]!;
       case 'Cancelled':
         return Colors.red[700]!;
-      default:
-        return Colors.grey[700]!;
+    }
+  }
+
+  String _formatQuantity(double qty, String unit) {
+    final unitLower = unit.toLowerCase();
+    if (unitLower == 'kg') {
+      if (qty == 0.25) return '250 g';
+      if (qty == 0.5) return '500 g';
+      if (qty == 0.75) return '750 g';
+      final s = qty.toString();
+      if (s.endsWith('.0')) {
+        return '${qty.toInt()} kg';
+      }
+      return '$qty kg';
+    } else if (unitLower == 'g' || unitLower == 'gram' || unitLower == 'grams') {
+      return '${qty.toInt()} g';
+    } else {
+      if (qty == qty.toInt()) {
+        return '${qty.toInt()} ${unit}';
+      }
+      return '${qty.toStringAsFixed(1)} ${unit}';
     }
   }
 }
