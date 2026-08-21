@@ -4,8 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart';
 
-void main() {
+import 'package:flutter/services.dart';
+
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Ensure normal system UI behavior (no fullscreen) so keyboard can appear
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
   runApp(const MyApp());
 }
 
@@ -59,9 +63,10 @@ class _WebViewScreenState extends State<WebViewScreen> {
             if (mounted) setState(() => _isLoading = true);
           },
           onPageFinished: (String url) {
-              if (mounted) setState(() => _isLoading = false);
-              _controller.evaluateJavaScript("document.body.focus();");
-            },
+            if (mounted) setState(() => _isLoading = false);
+            // Focus after a short delay to ensure DOM is ready
+            _controller.evaluateJavaScript("document.body.focus(); setTimeout(() => { var el = document.querySelector('input, textarea, select'); if (el) el.focus(); }, 200);");
+          },
         ),
       )
       ..loadRequest(Uri.parse('https://37-iota.vercel.app/'));
@@ -69,41 +74,37 @@ class _WebViewScreenState extends State<WebViewScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final height = MediaQuery.of(context).size.height - MediaQuery.of(context).viewInsets.bottom;
     return Scaffold(
       resizeToAvoidBottomInset: true,
       body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final height = constraints.maxHeight - MediaQuery.of(context).viewInsets.bottom;
-            return SizedBox(
-              height: height,
-              child: Stack(
-                children: [
-                  WebViewWidget(
-                    controller: _controller,
-                    gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
-                      Factory<VerticalDragGestureRecognizer>(
-                        () => VerticalDragGestureRecognizer(),
-                      ),
-                      Factory<HorizontalDragGestureRecognizer>(
-                        () => HorizontalDragGestureRecognizer(),
-                      ),
-                      Factory<TapGestureRecognizer>(
-                        () => TapGestureRecognizer(),
-                      ),
-                      Factory<LongPressGestureRecognizer>(
-                        () => LongPressGestureRecognizer(),
-                      ),
-                    },
+        child: SizedBox(
+          height: height,
+          child: Stack(
+            children: [
+              WebViewWidget(
+                controller: _controller,
+                gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
+                  Factory<VerticalDragGestureRecognizer>(
+                    () => VerticalDragGestureRecognizer(),
                   ),
-                  if (_isLoading)
-                    const Center(
-                      child: CircularProgressIndicator(color: Colors.green),
-                    ),
-                ],
+                  Factory<HorizontalDragGestureRecognizer>(
+                    () => HorizontalDragGestureRecognizer(),
+                  ),
+                  Factory<TapGestureRecognizer>(
+                    () => TapGestureRecognizer(),
+                  ),
+                  Factory<LongPressGestureRecognizer>(
+                    () => LongPressGestureRecognizer(),
+                  ),
+                },
               ),
-            );
-          },
+              if (_isLoading)
+                const Center(
+                  child: CircularProgressIndicator(color: Colors.green),
+                ),
+            ],
+          ),
         ),
       ),
     );
