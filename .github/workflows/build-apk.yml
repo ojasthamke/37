@@ -26,14 +26,14 @@ jobs:
           flutter-version: '3.24.0'
           cache: true
 
-      - name: Build Wrapper APK
-        run: |
-          cd aplibhaji_admin_apk
-          flutter pub get
-          flutter build apk --release
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Build Native APK
+        run: flutter build apk --release
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: aplibhaji-admin-apk
-          path: aplibhaji_admin_apk/build/app/outputs/flutter-apk/app-release.apk
+          path: build/app/outputs/flutter-apk/app-release.apk

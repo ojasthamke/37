@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as p;
 
 class DatabaseHelper {
   DatabaseHelper._();
@@ -22,8 +24,13 @@ class DatabaseHelper {
     String path;
     if (kIsWeb) {
       path = inMemoryDatabasePath;
+    } else if (Platform.isAndroid || Platform.isIOS) {
+      // Use proper app-specific directory on mobile
+      final dir = await getApplicationDocumentsDirectory();
+      path = p.join(dir.path, 'aplibhaji_admin.db');
     } else {
-      path = 'C:/Users/ojast/.gemini/antigravity/aplibhaji_shared.db';
+      // Desktop fallback
+      path = 'aplibhaji_shared.db';
     }
 
     return openDatabase(
