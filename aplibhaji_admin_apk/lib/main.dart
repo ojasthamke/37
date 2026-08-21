@@ -71,30 +71,38 @@ class _WebViewScreenState extends State<WebViewScreen> {
     return Scaffold(
       resizeToAvoidBottomInset: true,
       body: SafeArea(
-        child: Stack(
-          children: [
-            WebViewWidget(
-              controller: _controller,
-              gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
-                Factory<VerticalDragGestureRecognizer>(
-                  () => VerticalDragGestureRecognizer(),
-                ),
-                Factory<HorizontalDragGestureRecognizer>(
-                  () => HorizontalDragGestureRecognizer(),
-                ),
-                Factory<TapGestureRecognizer>(
-                  () => TapGestureRecognizer(),
-                ),
-                Factory<LongPressGestureRecognizer>(
-                  () => LongPressGestureRecognizer(),
-                ),
-              },
-            ),
-            if (_isLoading)
-              const Center(
-                child: CircularProgressIndicator(color: Colors.green),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final height = constraints.maxHeight - MediaQuery.of(context).viewInsets.bottom;
+            return SizedBox(
+              height: height,
+              child: Stack(
+                children: [
+                  WebViewWidget(
+                    controller: _controller,
+                    gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
+                      Factory<VerticalDragGestureRecognizer>(
+                        () => VerticalDragGestureRecognizer(),
+                      ),
+                      Factory<HorizontalDragGestureRecognizer>(
+                        () => HorizontalDragGestureRecognizer(),
+                      ),
+                      Factory<TapGestureRecognizer>(
+                        () => TapGestureRecognizer(),
+                      ),
+                      Factory<LongPressGestureRecognizer>(
+                        () => LongPressGestureRecognizer(),
+                      ),
+                    },
+                  ),
+                  if (_isLoading)
+                    const Center(
+                      child: CircularProgressIndicator(color: Colors.green),
+                    ),
+                ],
               ),
-          ],
+            );
+          },
         ),
       ),
     );
