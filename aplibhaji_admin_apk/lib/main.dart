@@ -1,5 +1,8 @@
+import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:webview_flutter_android/webview_flutter_android.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -36,19 +39,27 @@ class _WebViewScreenState extends State<WebViewScreen> {
   @override
   void initState() {
     super.initState();
-    _controller = WebViewController()
+
+    late final PlatformWebViewControllerCreationParams params;
+    params = const PlatformWebViewControllerCreationParams();
+
+    _controller = WebViewController.fromPlatformCreationParams(params);
+
+    // Enable hybrid composition on Android for keyboard support
+    if (_controller.platform is AndroidWebViewController) {
+      (_controller.platform as AndroidWebViewController)
+          .setMediaPlaybackRequiresUserGesture(false);
+    }
+
+    _controller
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setNavigationDelegate(
         NavigationDelegate(
           onPageStarted: (String url) {
-            setState(() {
-              _isLoading = true;
-            });
+            if (mounted) setState(() => _isLoading = true);
           },
           onPageFinished: (String url) {
-            setState(() {
-              _isLoading = false;
-            });
+            if (mounted) setState(() => _isLoading = false);
           },
         ),
       )
@@ -68,8 +79,14 @@ class _WebViewScreenState extends State<WebViewScreen> {
                 Factory<VerticalDragGestureRecognizer>(
                   () => VerticalDragGestureRecognizer(),
                 ),
+                Factory<HorizontalDragGestureRecognizer>(
+                  () => HorizontalDragGestureRecognizer(),
+                ),
                 Factory<TapGestureRecognizer>(
                   () => TapGestureRecognizer(),
+                ),
+                Factory<LongPressGestureRecognizer>(
+                  () => LongPressGestureRecognizer(),
                 ),
               },
             ),
