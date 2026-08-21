@@ -290,6 +290,8 @@ class OrderDetailsScreen extends ConsumerWidget {
         return Colors.green[700]!;
       case 'Cancelled':
         return Colors.red[700]!;
+      default:
+        return Colors.grey;
     }
   }
 
