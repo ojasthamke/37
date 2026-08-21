@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:aplibhaji_admin/main.dart';
-import 'package:aplibhaji_admin/features/auth/login_screen.dart';
 
 void main() {
   testWidgets('Login Screen input and focus validation test', (WidgetTester tester) async {
