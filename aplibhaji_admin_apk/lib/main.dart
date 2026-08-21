@@ -59,8 +59,9 @@ class _WebViewScreenState extends State<WebViewScreen> {
             if (mounted) setState(() => _isLoading = true);
           },
           onPageFinished: (String url) {
-            if (mounted) setState(() => _isLoading = false);
-          },
+              if (mounted) setState(() => _isLoading = false);
+              _controller.evaluateJavaScript("document.body.focus();");
+            },
         ),
       )
       ..loadRequest(Uri.parse('https://37-iota.vercel.app/'));
