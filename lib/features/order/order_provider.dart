@@ -1,0 +1,120 @@
+import 'dart:async';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/database/providers.dart';
+
+class OrderFilter {
+  final String status;
+  final String search;
+
+  OrderFilter({this.status = 'All', this.search = ''});
+
+  OrderFilter copyWith({String? status, String? search}) {
+    return OrderFilter(
+      status: status ?? this.status,
+      search: search ?? this.search,
+    );
+  }
+}
+
+class OrderFilterNotifier extends StateNotifier<OrderFilter> {
+  OrderFilterNotifier() : super(OrderFilter());
+
+  void setStatus(String status) {
+    state = state.copyWith(status: status);
+  }
+
+  void setSearch(String search) {
+    state = state.copyWith(search: search);
+  }
+
+  void clearFilters() {
+    state = OrderFilter();
+  }
+}
+
+final orderFilterProvider = StateNotifierProvider<OrderFilterNotifier, OrderFilter>((ref) {
+  return OrderFilterNotifier();
+});
+
+class OrderListNotifier extends StateNotifier<AsyncValue<List<Map<String, dynamic>>>> {
+  final Ref _ref;
+  Timer? _pollTimer;
+
+  OrderListNotifier(this._ref) : super(const AsyncValue.loading()) {
+    _ref.listen<OrderFilter>(orderFilterProvider, (previous, next) {
+      fetchOrders(status: next.status, search: next.search);
+    });
+    final filters = _ref.read(orderFilterProvider);
+    fetchOrders(status: filters.status, search: filters.search);
+
+    // Setup periodic polling every 10 seconds to auto-refresh orders list!
+    _pollTimer = Timer.periodic(const Duration(seconds: 10), (_) {
+      silentRefresh();
+    });
+
+    _ref.onDispose(() {
+      _pollTimer?.cancel();
+    });
+  }
+
+  Future<void> fetchOrders({required String status, required String search}) async {
+    state = const AsyncValue.loading();
+    try {
+      final repo = _ref.read(orderRepositoryProvider);
+      final list = await repo.getOrders(status: status, search: search);
+      state = AsyncValue.data(list);
+    } catch (e, stackTrace) {
+      state = AsyncValue.error(e, stackTrace);
+    }
+  }
+
+  Future<void> refresh() async {
+    final filters = _ref.read(orderFilterProvider);
+    await fetchOrders(status: filters.status, search: filters.search);
+  }
+
+  Future<void> silentRefresh() async {
+    try {
+      final filters = _ref.read(orderFilterProvider);
+      final repo = _ref.read(orderRepositoryProvider);
+      final list = await repo.getOrders(status: filters.status, search: filters.search);
+      state = AsyncValue.data(list);
+    } catch (_) {
+      // Ignore background refresh errors
+    }
+  }
+
+  Future<void> updateStatus(String orderId, String newStatus) async {
+    try {
+      final repo = _ref.read(orderRepositoryProvider);
+      await repo.updateOrderStatus(orderId, newStatus);
+      await refresh();
+      // Also refresh the specific details if anyone is listening
+      _ref.invalidate(orderDetailsProvider(orderId));
+    } catch (e) {
+      // Handle error
+    }
+  }
+}
+
+final orderListProvider = StateNotifierProvider<OrderListNotifier, AsyncValue<List<Map<String, dynamic>>>>((ref) {
+  return OrderListNotifier(ref);
+});
+
+class OrderFullDetails {
+  final Map<String, dynamic> order;
+  final List<Map<String, dynamic>> items;
+
+  OrderFullDetails({required this.order, required this.items});
+}
+
+final orderDetailsProvider = FutureProvider.family<OrderFullDetails, String>((ref, orderId) async {
+  // Watch orderListProvider so orderDetails automatically re-evaluates when orders are updated/polled!
+  ref.watch(orderListProvider);
+  
+  final repo = ref.read(orderRepositoryProvider);
+  final order = await repo.getOrderById(orderId);
+  if (order == null) throw Exception('Order not found');
+  final items = await repo.getOrderItems(orderId);
+  return OrderFullDetails(order: order, items: items);
+});

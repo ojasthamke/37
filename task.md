@@ -1,0 +1,9 @@
+- [x] Implement Customer App Auto-Refresh Polling Fallbacks (`catalog_provider.dart` & `order_provider.dart`)
+- [x] Implement Admin App Auto-Refresh Polling Fallbacks (`order_provider.dart`, `customer_provider.dart`, `product_provider.dart`, `category_provider.dart`)
+- [x] Add Customer Deletion Repository Methods (`repositories.dart`)
+- [x] Add Customer Deletion Notifier Logic (`customer_provider.dart`)
+- [x] Build Delete Confirmation Dialog in Admin Customers screen (`customers_screen.dart`)
+- [x] Run static analysis (`flutter analyze`) in both apps
+- [x] Run automated tests (`flutter test`) in both apps
+- [x] Compile production release assets (`flutter build web`) in both apps
+- [x] Clean up any testing artifacts and verify database state
