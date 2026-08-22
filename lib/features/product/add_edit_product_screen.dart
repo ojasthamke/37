@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../category/category_provider.dart';
 import 'product_provider.dart';
 
@@ -37,6 +40,8 @@ class _AddEditProductScreenState extends ConsumerState<AddEditProductScreen> {
   String _selectedUnit = 'kg';
   bool _isAvailable = true;
   bool _isEnabled = true;
+  String? _imageUrl;
+  bool _isUploading = false;
 
   final List<String> _units = ['kg', 'gram', 'litre', 'piece', 'packet'];
 
@@ -69,6 +74,8 @@ class _AddEditProductScreenState extends ConsumerState<AddEditProductScreen> {
     _selectedUnit = isEdit ? (p['unit'] ?? 'kg') : 'kg';
     _isAvailable = isEdit ? (p['is_available'] == true || p['is_available'] == 1) : true;
     _isEnabled = isEdit ? (p['is_enabled'] == true || p['is_enabled'] == 1) : true;
+    _imageUrl = isEdit ? p['image_path'] : null;
+    _isUploading = false;
   }
 
   @override
@@ -89,6 +96,64 @@ class _AddEditProductScreenState extends ConsumerState<AddEditProductScreen> {
     _bestBeforeController.dispose();
     _packDateController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickAndUploadImage() async {
+    HapticFeedback.lightImpact(); // Haptics for starting image addition!
+    final picker = ImagePicker();
+    try {
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 85,
+      );
+      if (image == null) return;
+
+      setState(() {
+        _isUploading = true;
+      });
+
+      final bytes = await image.readAsBytes();
+      final extension = image.name.split('.').last.toLowerCase();
+      final fileName = 'product_${DateTime.now().millisecondsSinceEpoch}.$extension';
+
+      // Upload to Supabase Storage
+      await Supabase.instance.client.storage
+          .from('product-images')
+          .uploadBinary(
+            fileName,
+            bytes,
+            fileOptions: FileOptions(contentType: 'image/$extension'),
+          );
+
+      // Get public URL
+      final publicUrl = Supabase.instance.client.storage
+          .from('product-images')
+          .getPublicUrl(fileName);
+
+      setState(() {
+        _imageUrl = publicUrl;
+        _isUploading = false;
+      });
+      
+      HapticFeedback.mediumImpact(); // Haptics for successful upload!
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Product image uploaded successfully')),
+        );
+      }
+    } catch (e) {
+      setState(() {
+        _isUploading = false;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to upload image: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
   }
 
   void _save() async {
@@ -142,6 +207,7 @@ class _AddEditProductScreenState extends ConsumerState<AddEditProductScreen> {
               unit: _selectedUnit,
               isAvailable: _isAvailable,
               isEnabled: _isEnabled,
+              imagePath: _imageUrl,
               costPrice: costPrice,
               marketPrice: marketPrice,
               stock: stock,
@@ -165,6 +231,7 @@ class _AddEditProductScreenState extends ConsumerState<AddEditProductScreen> {
               unit: _selectedUnit,
               isAvailable: _isAvailable,
               isEnabled: _isEnabled,
+              imagePath: _imageUrl,
               costPrice: costPrice,
               marketPrice: marketPrice,
               stock: stock,
@@ -285,6 +352,127 @@ class _AddEditProductScreenState extends ConsumerState<AddEditProductScreen> {
                               hintText: 'e.g. Fresh organic potatoes',
                             ),
                             maxLines: 2,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // 1.5 Product Image / Photo Upload Section
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Product Image',
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: theme.colorScheme.primary,
+                                ),
+                              ),
+                              if (_imageUrl != null && !_isUploading)
+                                TextButton.icon(
+                                  style: TextButton.styleFrom(foregroundColor: Colors.red),
+                                  onPressed: () {
+                                    HapticFeedback.lightImpact();
+                                    setState(() {
+                                      _imageUrl = null;
+                                    });
+                                  },
+                                  icon: const Icon(Icons.delete_outline, size: 18),
+                                  label: const Text('Remove'),
+                                ),
+                            ],
+                          ),
+                          const Divider(height: 20),
+                          Container(
+                            height: 180,
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              color: Colors.grey[100],
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: Colors.grey[300]!,
+                                width: 1,
+                              ),
+                            ),
+                            child: _isUploading
+                                ? const Center(
+                                    child: Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        CircularProgressIndicator(),
+                                        SizedBox(height: 12),
+                                        Text('Uploading photo...'),
+                                      ],
+                                    ),
+                                  )
+                                : _imageUrl != null
+                                    ? ClipRRect(
+                                        borderRadius: BorderRadius.circular(16),
+                                        child: Image.network(
+                                          _imageUrl!,
+                                          fit: BoxFit.cover,
+                                          width: double.infinity,
+                                          height: double.infinity,
+                                          errorBuilder: (context, error, stackTrace) {
+                                            return const Center(
+                                              child: Column(
+                                                mainAxisAlignment: MainAxisAlignment.center,
+                                                children: [
+                                                  Icon(Icons.broken_image_outlined, size: 48, color: Colors.grey),
+                                                  SizedBox(height: 8),
+                                                  Text('Error loading image URL'),
+                                                ],
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                      )
+                                    : InkWell(
+                                        onTap: _pickAndUploadImage,
+                                        borderRadius: BorderRadius.circular(16),
+                                        child: Center(
+                                          child: Column(
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            children: [
+                                              Icon(Icons.add_photo_alternate_outlined, size: 48, color: theme.colorScheme.primary),
+                                              const SizedBox(height: 12),
+                                              Text(
+                                                'Upload Product Photo',
+                                                style: TextStyle(
+                                                  color: theme.colorScheme.primary,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                'Supports JPG, PNG (Max 5MB)',
+                                                style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                          ),
+                          const SizedBox(height: 12),
+                          TextFormField(
+                            controller: TextEditingController(text: _imageUrl ?? ''),
+                            decoration: const InputDecoration(
+                              labelText: 'Image URL (optional override)',
+                              hintText: 'e.g. https://example.com/image.jpg',
+                            ),
+                            onChanged: (val) {
+                              setState(() {
+                                _imageUrl = val.trim().isEmpty ? null : val.trim();
+                              });
+                            },
                           ),
                         ],
                       ),

@@ -27,6 +27,7 @@ abstract class ProductRepository {
     required String unit,
     required bool isAvailable,
     required bool isEnabled,
+    String? imagePath,
     double costPrice = 0.0,
     double marketPrice = 0.0,
     double stock = 0.0,
@@ -50,6 +51,7 @@ abstract class ProductRepository {
     required String unit,
     required bool isAvailable,
     required bool isEnabled,
+    String? imagePath,
     double costPrice = 0.0,
     double marketPrice = 0.0,
     double stock = 0.0,
@@ -220,6 +222,7 @@ class SQLiteProductRepository implements ProductRepository {
     required String unit,
     required bool isAvailable,
     required bool isEnabled,
+    String? imagePath,
     double costPrice = 0.0,
     double marketPrice = 0.0,
     double stock = 0.0,
@@ -255,7 +258,7 @@ class SQLiteProductRepository implements ProductRepository {
       'id': _uuid.v4(),
       'name': name,
       'category_id': categoryId,
-      'image_path': '',
+      'image_path': imagePath ?? '',
       'description': encodedDesc,
       'price': price,
       'unit': unit,
@@ -275,6 +278,7 @@ class SQLiteProductRepository implements ProductRepository {
     required String unit,
     required bool isAvailable,
     required bool isEnabled,
+    String? imagePath,
     double costPrice = 0.0,
     double marketPrice = 0.0,
     double stock = 0.0,
@@ -306,17 +310,23 @@ class SQLiteProductRepository implements ProductRepository {
       'best_before': bestBefore,
       'pack_date': packDate,
     });
+    
+    final Map<String, dynamic> updateData = {
+      'name': name,
+      'category_id': categoryId,
+      'description': encodedDesc,
+      'price': price,
+      'unit': unit,
+      'is_available': isAvailable ? 1 : 0,
+      'is_enabled': isEnabled ? 1 : 0,
+    };
+    if (imagePath != null) {
+      updateData['image_path'] = imagePath;
+    }
+
     await db.update(
       'products',
-      {
-        'name': name,
-        'category_id': categoryId,
-        'description': encodedDesc,
-        'price': price,
-        'unit': unit,
-        'is_available': isAvailable ? 1 : 0,
-        'is_enabled': isEnabled ? 1 : 0,
-      },
+      updateData,
       where: 'id = ?',
       whereArgs: [id],
     );
@@ -619,6 +629,7 @@ class SupabaseProductRepository implements ProductRepository {
     required String unit,
     required bool isAvailable,
     required bool isEnabled,
+    String? imagePath,
     double costPrice = 0.0,
     double marketPrice = 0.0,
     double stock = 0.0,
@@ -652,7 +663,7 @@ class SupabaseProductRepository implements ProductRepository {
     await _client.from('products').insert({
       'name': name,
       'category_id': categoryId,
-      'image_path': '',
+      'image_path': imagePath ?? '',
       'description': encodedDesc,
       'price': price,
       'unit': unit,
@@ -671,6 +682,7 @@ class SupabaseProductRepository implements ProductRepository {
     required String unit,
     required bool isAvailable,
     required bool isEnabled,
+    String? imagePath,
     double costPrice = 0.0,
     double marketPrice = 0.0,
     double stock = 0.0,
@@ -727,7 +739,7 @@ class SupabaseProductRepository implements ProductRepository {
       }
     } catch (_) {}
 
-    await _client.from('products').update({
+    final Map<String, dynamic> updateData = {
       'name': name,
       'category_id': categoryId,
       'description': mergedDescription,
@@ -735,7 +747,12 @@ class SupabaseProductRepository implements ProductRepository {
       'unit': unit,
       'is_available': isAvailable,
       'is_enabled': isEnabled,
-    }).eq('id', id);
+    };
+    if (imagePath != null) {
+      updateData['image_path'] = imagePath;
+    }
+
+    await _client.from('products').update(updateData).eq('id', id);
   }
 
   @override
