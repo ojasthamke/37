@@ -30,8 +30,8 @@ const RESOURCES = {"version.json": "23f940e834b6a6642468826a2b8e853c",
 "assets/AssetManifest.bin": "693635b5258fe5f1cda720cf224f158c",
 "assets/shaders/ink_sparkle.frag": "ecc85a2e95f5e9f53123dcaf8cb9b6ce",
 "assets/packages/cupertino_icons/assets/CupertinoIcons.ttf": "b93248a553f9e8bc17f1065929d5934b",
-"main.dart.js": "01ee3a842e79a5db0379178017ef4393",
-"flutter_bootstrap.js": "0dc8d8120e276dde0d2b31fe502d4041",
+"main.dart.js": "5953d3b623f7959fa01dd16c5d614c44",
+"flutter_bootstrap.js": "7c2ddc5364bf23304c5362cad4be9498",
 "manifest.json": "3537a502bf1febea5081aac4dbfda168"};
 // The application shell files that are downloaded before a service worker can
 // start.
