@@ -25,7 +25,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   void _initAuthListener() {
     try {
       Supabase.instance.client.auth.onAuthStateChange.listen((data) {
-        final user = data.user;
+        final user = data.session?.user;
         final email = user?.email?.toLowerCase();
         if (user != null && (email == 'admin@aplibhaji.com' || email == 'ojasthamkes@gmail.com')) {
           state = AuthState(isAuthenticated: true, isLoading: false);

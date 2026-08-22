@@ -14,6 +14,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   late TextEditingController _nameController;
   late TextEditingController _phoneController;
   late TextEditingController _addressController;
+  late TextEditingController _deliveryChargeController;
+  late TextEditingController _freeDeliveryThresholdController;
 
   @override
   void initState() {
@@ -21,6 +23,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _nameController = TextEditingController();
     _phoneController = TextEditingController();
     _addressController = TextEditingController();
+    _deliveryChargeController = TextEditingController();
+    _freeDeliveryThresholdController = TextEditingController();
     
     // Populate controllers once values are loaded
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -28,6 +32,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       _nameController.text = settings['store_name'] ?? '';
       _phoneController.text = settings['store_phone'] ?? '';
       _addressController.text = settings['store_address'] ?? '';
+      _deliveryChargeController.text = settings['delivery_charge'] ?? '30';
+      _freeDeliveryThresholdController.text = settings['free_delivery_threshold'] ?? '300';
     });
   }
 
@@ -36,6 +42,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _nameController.dispose();
     _phoneController.dispose();
     _addressController.dispose();
+    _deliveryChargeController.dispose();
+    _freeDeliveryThresholdController.dispose();
     super.dispose();
   }
 
@@ -44,6 +52,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ref.read(settingsProvider.notifier).updateSetting('store_name', _nameController.text.trim());
       ref.read(settingsProvider.notifier).updateSetting('store_phone', _phoneController.text.trim());
       ref.read(settingsProvider.notifier).updateSetting('store_address', _addressController.text.trim());
+      ref.read(settingsProvider.notifier).updateSetting('delivery_charge', _deliveryChargeController.text.trim());
+      ref.read(settingsProvider.notifier).updateSetting('free_delivery_threshold', _freeDeliveryThresholdController.text.trim());
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Store configuration updated successfully')),
@@ -62,6 +72,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         _nameController.text = next.values['store_name'] ?? '';
         _phoneController.text = next.values['store_phone'] ?? '';
         _addressController.text = next.values['store_address'] ?? '';
+        _deliveryChargeController.text = next.values['delivery_charge'] ?? '30';
+        _freeDeliveryThresholdController.text = next.values['free_delivery_threshold'] ?? '300';
       }
     });
 
@@ -130,10 +142,50 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                 labelText: 'Store Address',
                                 prefixIcon: Icon(Icons.location_on_rounded),
                               ),
-                              maxLines: 3,
+                              maxLines: 2,
                               validator: (val) {
                                 if (val == null || val.trim().isEmpty) {
                                   return 'Please enter store address';
+                                }
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 16),
+
+                            // Delivery Charge
+                            TextFormField(
+                              controller: _deliveryChargeController,
+                              decoration: const InputDecoration(
+                                labelText: 'Delivery Charge (₹)',
+                                prefixIcon: Icon(Icons.delivery_dining_rounded),
+                              ),
+                              keyboardType: TextInputType.number,
+                              validator: (val) {
+                                if (val == null || val.trim().isEmpty) {
+                                  return 'Please enter delivery charge';
+                                }
+                                if (double.tryParse(val.trim()) == null) {
+                                  return 'Please enter a valid amount';
+                                }
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 16),
+
+                            // Free Delivery Threshold
+                            TextFormField(
+                              controller: _freeDeliveryThresholdController,
+                              decoration: const InputDecoration(
+                                labelText: 'Free Delivery Threshold (₹)',
+                                prefixIcon: Icon(Icons.local_offer_rounded),
+                              ),
+                              keyboardType: TextInputType.number,
+                              validator: (val) {
+                                if (val == null || val.trim().isEmpty) {
+                                  return 'Please enter free delivery threshold';
+                                }
+                                if (double.tryParse(val.trim()) == null) {
+                                  return 'Please enter a valid amount';
                                 }
                                 return null;
                               },
