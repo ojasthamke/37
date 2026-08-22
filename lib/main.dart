@@ -49,7 +49,15 @@ class ApliBhajiAdminApp extends ConsumerWidget {
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: ThemeMode.light, // Set light theme by default for store admin look
-      home: authState.isAuthenticated ? const MainNavigationShell() : const LoginScreen(),
+      home: authState.isLoading
+          ? const Scaffold(
+              body: Center(
+                child: CircularProgressIndicator(),
+              ),
+            )
+          : (authState.isAuthenticated
+              ? const MainNavigationShell()
+              : const LoginScreen()),
     );
   }
 }

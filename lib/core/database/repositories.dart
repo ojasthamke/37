@@ -801,6 +801,14 @@ class SupabaseCustomerRepository implements CustomerRepository {
 
   @override
   Future<void> deleteCustomer(String id) async {
+    final List<dynamic> orders = await _client.from('orders').select('id').eq('customer_id', id);
+    final List<String> orderIds = orders.map((o) => o['id'] as String).toList();
+    
+    if (orderIds.isNotEmpty) {
+      await _client.from('order_items').delete().inFilter('order_id', orderIds);
+      await _client.from('orders').delete().inFilter('id', orderIds);
+    }
+    
     await _client.from('customers').delete().eq('id', id);
   }
 }
@@ -855,6 +863,7 @@ class SupabaseOrderRepository implements OrderRepository {
 
   @override
   Future<void> deleteOrder(String id) async {
+    await _client.from('order_items').delete().eq('order_id', id);
     await _client.from('orders').delete().eq('id', id);
   }
 }
