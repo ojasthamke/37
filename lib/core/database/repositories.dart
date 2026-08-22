@@ -55,6 +55,7 @@ abstract class OrderRepository {
   Future<Map<String, dynamic>?> getOrderById(String id);
   Future<List<Map<String, dynamic>>> getOrderItems(String orderId);
   Future<void> updateOrderStatus(String orderId, String status);
+  Future<void> deleteOrder(String id);
 }
 
 abstract class SettingsRepository {
@@ -361,6 +362,12 @@ class SQLiteOrderRepository implements OrderRepository {
       whereArgs: [orderId],
     );
   }
+
+  @override
+  Future<void> deleteOrder(String id) async {
+    final db = await _dbHelper.database;
+    await db.delete('orders', where: 'id = ?', whereArgs: [id]);
+  }
 }
 
 class SQLiteSettingsRepository implements SettingsRepository {
@@ -614,6 +621,11 @@ class SupabaseOrderRepository implements OrderRepository {
   @override
   Future<void> updateOrderStatus(String orderId, String status) async {
     await _client.from('orders').update({'status': status}).eq('id', orderId);
+  }
+
+  @override
+  Future<void> deleteOrder(String id) async {
+    await _client.from('orders').delete().eq('id', id);
   }
 }
 

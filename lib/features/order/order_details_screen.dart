@@ -16,6 +16,12 @@ class OrderDetailsScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Order Details'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.delete_outline, color: Colors.red),
+            onPressed: () => _confirmDelete(context, ref),
+          ),
+        ],
       ),
       body: detailsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -314,5 +320,41 @@ class OrderDetailsScreen extends ConsumerWidget {
       }
       return '${qty.toStringAsFixed(1)} $unit';
     }
+  }
+
+  void _confirmDelete(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Order'),
+        content: const Text('Are you sure you want to permanently delete this order? This action cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('CANCEL'),
+          ),
+          TextButton(
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            onPressed: () async {
+              Navigator.pop(context); // Close dialog
+              final success = await ref.read(orderListProvider.notifier).deleteOrder(orderId);
+              if (context.mounted) {
+                if (success) {
+                  Navigator.pop(context); // Go back to orders list
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Order deleted successfully')),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Failed to delete order'), backgroundColor: Colors.red),
+                  );
+                }
+              }
+            },
+            child: const Text('DELETE'),
+          ),
+        ],
+      ),
+    );
   }
 }

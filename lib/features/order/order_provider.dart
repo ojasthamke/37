@@ -95,6 +95,17 @@ class OrderListNotifier extends StateNotifier<AsyncValue<List<Map<String, dynami
       // Handle error
     }
   }
+
+  Future<bool> deleteOrder(String orderId) async {
+    try {
+      final repo = _ref.read(orderRepositoryProvider);
+      await repo.deleteOrder(orderId);
+      await refresh();
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
 }
 
 final orderListProvider = StateNotifierProvider<OrderListNotifier, AsyncValue<List<Map<String, dynamic>>>>((ref) {
