@@ -461,19 +461,7 @@ class _AddEditProductScreenState extends ConsumerState<AddEditProductScreen> {
                                         ),
                                       ),
                           ),
-                          const SizedBox(height: 12),
-                          TextFormField(
-                            controller: TextEditingController(text: _imageUrl ?? ''),
-                            decoration: const InputDecoration(
-                              labelText: 'Image URL (optional override)',
-                              hintText: 'e.g. https://example.com/image.jpg',
-                            ),
-                            onChanged: (val) {
-                              setState(() {
-                                _imageUrl = val.trim().isEmpty ? null : val.trim();
-                              });
-                            },
-                          ),
+                           // Removed Image URL optional override field. Users now strictly pick/upload files directly.
                         ],
                       ),
                     ),

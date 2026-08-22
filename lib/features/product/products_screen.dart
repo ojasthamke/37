@@ -161,19 +161,32 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
                           child: Row(
                             children: [
                               // Placeholder Image / Icon
-                              Container(
-                                width: 64,
-                                height: 64,
-                                decoration: BoxDecoration(
-                                  color: theme.colorScheme.primary.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Icon(
-                                  Icons.shopping_bag_outlined,
-                                  color: theme.colorScheme.primary,
-                                  size: 32,
-                                ),
-                              ),
+                               Container(
+                                 width: 64,
+                                 height: 64,
+                                 decoration: BoxDecoration(
+                                   color: theme.colorScheme.primary.withOpacity(0.1),
+                                   borderRadius: BorderRadius.circular(8),
+                                 ),
+                                 child: (p['image_path'] != null && (p['image_path'] as String).trim().isNotEmpty)
+                                     ? ClipRRect(
+                                         borderRadius: BorderRadius.circular(8),
+                                         child: Image.network(
+                                           p['image_path'] as String,
+                                           fit: BoxFit.cover,
+                                           errorBuilder: (context, error, stackTrace) => Icon(
+                                             Icons.broken_image_outlined,
+                                             color: theme.colorScheme.primary,
+                                             size: 32,
+                                           ),
+                                         ),
+                                       )
+                                     : Icon(
+                                         Icons.shopping_bag_outlined,
+                                         color: theme.colorScheme.primary,
+                                         size: 32,
+                                       ),
+                               ),
                               const SizedBox(width: 16),
                               
                               // Product Details
