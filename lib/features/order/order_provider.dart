@@ -84,15 +84,16 @@ class OrderListNotifier extends StateNotifier<AsyncValue<List<Map<String, dynami
     }
   }
 
-  Future<void> updateStatus(String orderId, String newStatus) async {
+  Future<String?> updateStatus(String orderId, String newStatus) async {
     try {
       final repo = _ref.read(orderRepositoryProvider);
       await repo.updateOrderStatus(orderId, newStatus);
       await refresh();
       // Also refresh the specific details if anyone is listening
       _ref.invalidate(orderDetailsProvider(orderId));
+      return null;
     } catch (e) {
-      // Handle error
+      return e.toString().replaceAll('PostgrestException: ', '').replaceAll('AuthException: ', '');
     }
   }
 

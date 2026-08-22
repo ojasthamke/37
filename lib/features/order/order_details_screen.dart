@@ -87,12 +87,23 @@ class OrderDetailsScreen extends ConsumerWidget {
                                   ),
                                 );
                               }).toList(),
-                              onChanged: (newStatus) {
+                              onChanged: (newStatus) async {
                                 if (newStatus != null) {
-                                  ref.read(orderListProvider.notifier).updateStatus(orderId, newStatus);
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text('Order status updated to $newStatus')),
-                                  );
+                                  final error = await ref.read(orderListProvider.notifier).updateStatus(orderId, newStatus);
+                                  if (context.mounted) {
+                                    if (error == null) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(content: Text('Order status updated to $newStatus')),
+                                      );
+                                    } else {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text('Failed to update status: $error'),
+                                          backgroundColor: Colors.red,
+                                        ),
+                                      );
+                                    }
+                                  }
                                 }
                               },
                             ),
