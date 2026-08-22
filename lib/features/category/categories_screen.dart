@@ -60,18 +60,51 @@ class CategoriesScreen extends ConsumerWidget {
                   child: const Text('Cancel'),
                 ),
                 ElevatedButton(
-                  onPressed: () {
+                  onPressed: () async {
                     if (formKey.currentState!.validate()) {
                       final name = nameController.text.trim();
-                      if (isEdit) {
-                        ref.read(categoryListProvider.notifier).updateCategory(category['id'], name, isEnabled);
-                      } else {
-                        ref.read(categoryListProvider.notifier).addCategory(name, isEnabled);
-                      }
-                      Navigator.pop(context);
+                      
+                      // Show Saving progress
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Category ${isEdit ? 'updated' : 'added'} successfully')),
+                        SnackBar(
+                          content: Row(
+                            children: [
+                              const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                              ),
+                              const SizedBox(width: 16),
+                              Text(isEdit ? 'Updating category...' : 'Creating category...'),
+                            ],
+                          ),
+                          duration: const Duration(days: 1),
+                        ),
                       );
+
+                      bool success;
+                      if (isEdit) {
+                        success = await ref.read(categoryListProvider.notifier).updateCategory(category['id'], name, isEnabled);
+                      } else {
+                        success = await ref.read(categoryListProvider.notifier).addCategory(name, isEnabled);
+                      }
+
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                        if (success) {
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Category ${isEdit ? 'updated' : 'added'} successfully')),
+                          );
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Failed to ${isEdit ? 'save' : 'create'} category. Category name may already exist.'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                      }
                     }
                   },
                   child: Text(isEdit ? 'Save' : 'Add'),

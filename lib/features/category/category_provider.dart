@@ -40,23 +40,25 @@ class CategoryListNotifier extends StateNotifier<AsyncValue<List<Map<String, dyn
     }
   }
 
-  Future<void> addCategory(String name, bool isEnabled) async {
+  Future<bool> addCategory(String name, bool isEnabled) async {
     try {
       final repo = _ref.read(categoryRepositoryProvider);
       await repo.addCategory(name, isEnabled);
       await fetchCategories();
+      return true;
     } catch (e) {
-      // Handle error
+      return false;
     }
   }
 
-  Future<void> updateCategory(String id, String name, bool isEnabled) async {
+  Future<bool> updateCategory(String id, String name, bool isEnabled) async {
     try {
       final repo = _ref.read(categoryRepositoryProvider);
       await repo.updateCategory(id, name, isEnabled);
       await fetchCategories();
+      return true;
     } catch (e) {
-      // Handle error
+      return false;
     }
   }
 

@@ -91,7 +91,7 @@ class _AddEditProductScreenState extends ConsumerState<AddEditProductScreen> {
     super.dispose();
   }
 
-  void _save() {
+  void _save() async {
     if (_formKey.currentState!.validate()) {
       final name = _nameController.text.trim();
       final description = _descriptionController.text.trim();
@@ -112,8 +112,28 @@ class _AddEditProductScreenState extends ConsumerState<AddEditProductScreen> {
 
       final isEdit = widget.product != null;
 
+      // Show Saving progress
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+              ),
+              const SizedBox(width: 16),
+              Text(isEdit ? 'Saving changes...' : 'Creating product...'),
+            ],
+          ),
+          duration: const Duration(days: 1), // Keep open until dismissed
+        ),
+      );
+
+      bool success;
+
       if (isEdit) {
-        ref.read(productListProvider.notifier).updateProduct(
+        success = await ref.read(productListProvider.notifier).updateProduct(
               id: widget.product!['id'],
               name: name,
               categoryId: _selectedCategoryId,
@@ -137,7 +157,7 @@ class _AddEditProductScreenState extends ConsumerState<AddEditProductScreen> {
               packDate: packDate,
             );
       } else {
-        ref.read(productListProvider.notifier).addProduct(
+        success = await ref.read(productListProvider.notifier).addProduct(
               name: name,
               categoryId: _selectedCategoryId,
               description: description,
@@ -161,10 +181,22 @@ class _AddEditProductScreenState extends ConsumerState<AddEditProductScreen> {
             );
       }
 
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Product ${isEdit ? 'updated' : 'added'} successfully')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        if (success) {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Product ${isEdit ? 'updated' : 'added'} successfully')),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to ${isEdit ? 'save' : 'create'} product. Please check your connection.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
     }
   }
 

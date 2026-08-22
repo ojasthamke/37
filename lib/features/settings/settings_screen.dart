@@ -187,9 +187,28 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                     foregroundColor: Colors.white,
                                   ),
                                   onPressed: () {
-                                    ref.read(settingsProvider.notifier).seedDatabase();
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('Mock database seeded successfully!')),
+                                    showDialog(
+                                      context: context,
+                                      builder: (context) => AlertDialog(
+                                        title: const Text('Seed Database'),
+                                        content: const Text('Are you sure you want to insert mock products and customers into the LIVE Supabase production database? This will mix test data with your real customer records.'),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () => Navigator.pop(context),
+                                            child: const Text('Cancel'),
+                                          ),
+                                          ElevatedButton(
+                                            onPressed: () {
+                                              Navigator.pop(context);
+                                              ref.read(settingsProvider.notifier).seedDatabase();
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                const SnackBar(content: Text('Mock database seeded successfully!')),
+                                              );
+                                            },
+                                            child: const Text('Seed Data'),
+                                          ),
+                                        ],
+                                      ),
                                     );
                                   },
                                   icon: const Icon(Icons.playlist_add_check_rounded),
@@ -209,7 +228,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                       context: context,
                                       builder: (context) => AlertDialog(
                                         title: const Text('Wipe Database'),
-                                        content: const Text('Are you sure you want to clear all categories, products, orders, and customer logs? This action is irreversible.'),
+                                        content: const Text('Are you sure you want to permanently clear all categories, products, orders, and customer logs from the LIVE Supabase database? This action is IRREVERSIBLE and will delete all real customer records!'),
                                         actions: [
                                           TextButton(
                                             onPressed: () => Navigator.pop(context),

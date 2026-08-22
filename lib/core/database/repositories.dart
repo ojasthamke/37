@@ -548,6 +548,7 @@ class SupabaseCategoryRepository implements CategoryRepository {
 
   @override
   Future<void> deleteCategory(String id) async {
+    await _client.from('products').update({'category_id': null}).eq('category_id', id);
     await _client.from('categories').delete().eq('id', id);
   }
 

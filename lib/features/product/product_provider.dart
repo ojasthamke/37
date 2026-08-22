@@ -91,7 +91,7 @@ class ProductListNotifier extends StateNotifier<AsyncValue<List<Map<String, dyna
     }
   }
 
-  Future<void> addProduct({
+  Future<bool> addProduct({
     required String name,
     required String? categoryId,
     required String description,
@@ -138,12 +138,13 @@ class ProductListNotifier extends StateNotifier<AsyncValue<List<Map<String, dyna
         packDate: packDate,
       );
       await refresh();
+      return true;
     } catch (e) {
-      // Handle error
+      return false;
     }
   }
 
-  Future<void> updateProduct({
+  Future<bool> updateProduct({
     required String id,
     required String name,
     required String? categoryId,
@@ -192,8 +193,9 @@ class ProductListNotifier extends StateNotifier<AsyncValue<List<Map<String, dyna
         packDate: packDate,
       );
       await refresh();
+      return true;
     } catch (e) {
-      // Handle error
+      return false;
     }
   }
 

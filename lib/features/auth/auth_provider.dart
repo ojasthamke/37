@@ -19,18 +19,22 @@ class AuthState {
 
 class AuthNotifier extends StateNotifier<AuthState> {
   AuthNotifier() : super(AuthState(isAuthenticated: false, isLoading: true)) {
-    _checkCurrentSession();
+    _initAuthListener();
   }
 
-  void _checkCurrentSession() {
+  void _initAuthListener() {
     try {
-      final user = Supabase.instance.client.auth.currentUser;
-      final email = user?.email?.toLowerCase();
-      if (user != null && (email == 'admin@aplibhaji.com' || email == 'ojasthamkes@gmail.com')) {
-        state = AuthState(isAuthenticated: true, isLoading: false);
-      } else {
+      Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+        final user = data.user;
+        final email = user?.email?.toLowerCase();
+        if (user != null && (email == 'admin@aplibhaji.com' || email == 'ojasthamkes@gmail.com')) {
+          state = AuthState(isAuthenticated: true, isLoading: false);
+        } else {
+          state = AuthState(isAuthenticated: false, isLoading: false);
+        }
+      }, onError: (_) {
         state = AuthState(isAuthenticated: false, isLoading: false);
-      }
+      });
     } catch (_) {
       state = AuthState(isAuthenticated: false, isLoading: false);
     }
