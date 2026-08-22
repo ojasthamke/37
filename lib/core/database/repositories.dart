@@ -832,8 +832,8 @@ class SupabaseOrderRepository implements OrderRepository {
     return res.map((order) {
       final Map<String, dynamic> mapped = Map.from(order);
       final cust = order['customers'] as Map<String, dynamic>?;
-      mapped['customer_name'] = cust != null ? cust['name'] : 'N/A';
-      mapped['customer_phone'] = cust != null ? cust['phone'] : 'N/A';
+      mapped['customer_name'] = (cust != null && cust['name'] != null) ? cust['name'] : (order['customer_name'] ?? 'Guest');
+      mapped['customer_phone'] = (cust != null && cust['phone'] != null) ? cust['phone'] : (order['customer_phone'] ?? 'N/A');
       return mapped;
     }).toList();
   }
@@ -845,8 +845,8 @@ class SupabaseOrderRepository implements OrderRepository {
     
     final Map<String, dynamic> mapped = Map.from(res);
     final cust = res['customers'] as Map<String, dynamic>?;
-    mapped['customer_name'] = cust != null ? cust['name'] : 'N/A';
-    mapped['customer_phone'] = cust != null ? cust['phone'] : 'N/A';
+    mapped['customer_name'] = (cust != null && cust['name'] != null) ? cust['name'] : (res['customer_name'] ?? 'Guest');
+    mapped['customer_phone'] = (cust != null && cust['phone'] != null) ? cust['phone'] : (res['customer_phone'] ?? 'N/A');
     return mapped;
   }
 
