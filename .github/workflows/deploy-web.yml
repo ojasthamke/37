@@ -1,0 +1,51 @@
+name: Build and Deploy Web
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - 'build/web/**'
+      - '.github/workflows/**'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build Web
+        run: flutter build web --release --no-tree-shake-icons
+
+      - name: Commit and Push build files
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add build/web
+          # Check if there are changes to commit
+          if git diff --staged --quiet; then
+            echo "No changes in build/web to commit."
+          else
+            git commit -m "chore: build web release [skip ci]"
+            git push
+          fi
