@@ -124,6 +124,8 @@ class DatabaseHelper {
     await db.insert('settings', {'key': 'store_name', 'value': 'ApliBhaji Store'});
     await db.insert('settings', {'key': 'store_phone', 'value': '+91 9876543210'});
     await db.insert('settings', {'key': 'store_address', 'value': 'Main Bazar, Pune, Maharashtra'});
+    await db.insert('settings', {'key': 'delivery_charge', 'value': '30'});
+    await db.insert('settings', {'key': 'free_delivery_threshold', 'value': '300'});
   }
 
   Future<void> clearDatabase() async {

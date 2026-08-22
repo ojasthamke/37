@@ -6,6 +6,7 @@ import '../order/order_provider.dart';
 import '../order/order_details_screen.dart';
 import '../product/product_provider.dart';
 import '../customer/customer_provider.dart';
+import '../settings/settings_provider.dart';
 
 // Dashboard statistics model
 class DashboardStats {
@@ -192,7 +193,75 @@ class DashboardScreen extends ConsumerWidget {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 24),
+
+                  // Delivery Fee Quick Control Card
+                  Consumer(
+                    builder: (context, ref, child) {
+                      final settingsState = ref.watch(settingsProvider);
+                      if (settingsState.isLoading) {
+                        return const SizedBox.shrink();
+                      }
+                      final deliveryCharge = settingsState.values['delivery_charge'] ?? '30';
+                      final freeThreshold = settingsState.values['free_delivery_threshold'] ?? '300';
+
+                      return Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Row(
+                            children: [
+                              CircleAvatar(
+                                radius: 24,
+                                backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
+                                child: Icon(
+                                  Icons.delivery_dining_rounded,
+                                  color: theme.colorScheme.primary,
+                                  size: 28,
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Delivery Charge: ₹$deliveryCharge',
+                                      style: theme.textTheme.titleMedium?.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      'Free Delivery on orders above ₹$freeThreshold',
+                                      style: TextStyle(
+                                        color: Colors.grey[600],
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: theme.colorScheme.primary,
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                                onPressed: () {
+                                  _showDeliverySettingsDialog(context, ref, deliveryCharge, freeThreshold);
+                                },
+                                icon: const Icon(Icons.edit_rounded, size: 16),
+                                label: const Text('Adjust'),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 24),
                   
                   // Recent Orders Card
                   Card(
@@ -399,6 +468,115 @@ class DashboardScreen extends ConsumerWidget {
           fontSize: 10,
           fontWeight: FontWeight.bold,
         ),
+      ),
+    );
+  }
+
+  void _showDeliverySettingsDialog(
+    BuildContext context,
+    WidgetRef ref,
+    String currentCharge,
+    String currentThreshold,
+  ) {
+    final formKey = GlobalKey<FormState>();
+    final chargeController = TextEditingController(text: currentCharge);
+    final thresholdController = TextEditingController(text: currentThreshold);
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.delivery_dining_rounded, color: Theme.of(context).colorScheme.primary),
+            const SizedBox(width: 8),
+            const Text('Adjust Delivery Fees'),
+          ],
+        ),
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: chargeController,
+                decoration: const InputDecoration(
+                  labelText: 'Delivery Charge (₹)',
+                  prefixIcon: Icon(Icons.currency_rupee_rounded),
+                ),
+                keyboardType: TextInputType.number,
+                validator: (val) {
+                  if (val == null || val.trim().isEmpty) {
+                    return 'Please enter delivery charge';
+                  }
+                  if (double.tryParse(val.trim()) == null) {
+                    return 'Please enter a valid number';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: thresholdController,
+                decoration: const InputDecoration(
+                  labelText: 'Free Delivery Threshold (₹)',
+                  prefixIcon: Icon(Icons.local_offer_rounded),
+                ),
+                keyboardType: TextInputType.number,
+                validator: (val) {
+                  if (val == null || val.trim().isEmpty) {
+                    return 'Please enter free delivery threshold';
+                  }
+                  if (double.tryParse(val.trim()) == null) {
+                    return 'Please enter a valid number';
+                  }
+                  return null;
+                },
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (formKey.currentState!.validate()) {
+                final charge = chargeController.text.trim();
+                final threshold = thresholdController.text.trim();
+
+                Navigator.pop(context);
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Updating delivery fees...')),
+                );
+
+                try {
+                  await Future.wait([
+                    ref.read(settingsProvider.notifier).updateSetting('delivery_charge', charge),
+                    ref.read(settingsProvider.notifier).updateSetting('free_delivery_threshold', threshold),
+                  ]);
+                  
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Delivery fees updated successfully')),
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Failed to update delivery fees: $e'), backgroundColor: Colors.red),
+                    );
+                  }
+                }
+              }
+            },
+            child: const Text('Save'),
+          ),
+        ],
       ),
     );
   }

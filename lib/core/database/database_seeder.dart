@@ -509,6 +509,8 @@ class DatabaseSeeder {
       {'key': 'store_name', 'value': 'ApliBhaji Store'},
       {'key': 'store_phone', 'value': '+91 9876543210'},
       {'key': 'store_address', 'value': 'Main Bazar, Pune, Maharashtra'},
+      {'key': 'delivery_charge', 'value': '30'},
+      {'key': 'free_delivery_threshold', 'value': '300'},
     ]);
   }
 }

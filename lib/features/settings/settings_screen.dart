@@ -47,17 +47,33 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     super.dispose();
   }
 
-  void _saveStoreDetails() {
+  void _saveStoreDetails() async {
     if (_formKey.currentState!.validate()) {
-      ref.read(settingsProvider.notifier).updateSetting('store_name', _nameController.text.trim());
-      ref.read(settingsProvider.notifier).updateSetting('store_phone', _phoneController.text.trim());
-      ref.read(settingsProvider.notifier).updateSetting('store_address', _addressController.text.trim());
-      ref.read(settingsProvider.notifier).updateSetting('delivery_charge', _deliveryChargeController.text.trim());
-      ref.read(settingsProvider.notifier).updateSetting('free_delivery_threshold', _freeDeliveryThresholdController.text.trim());
-
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Store configuration updated successfully')),
+        const SnackBar(content: Text('Updating store configuration...')),
       );
+      try {
+        await Future.wait([
+          ref.read(settingsProvider.notifier).updateSetting('store_name', _nameController.text.trim()),
+          ref.read(settingsProvider.notifier).updateSetting('store_phone', _phoneController.text.trim()),
+          ref.read(settingsProvider.notifier).updateSetting('store_address', _addressController.text.trim()),
+          ref.read(settingsProvider.notifier).updateSetting('delivery_charge', _deliveryChargeController.text.trim()),
+          ref.read(settingsProvider.notifier).updateSetting('free_delivery_threshold', _freeDeliveryThresholdController.text.trim()),
+        ]);
+        if (mounted) {
+          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Store configuration updated successfully')),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to update configuration: $e'), backgroundColor: Colors.red),
+          );
+        }
+      }
     }
   }
 
