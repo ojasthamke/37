@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:uuid/uuid.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -463,6 +464,19 @@ class SupabaseProductRepository implements ProductRepository {
       final Map<String, dynamic> mapped = Map.from(p);
       final cat = p['categories'] as Map<String, dynamic>?;
       mapped['category_name'] = cat != null ? cat['name'] : 'N/A';
+      
+      // If description contains JSON, parse and extract 'text' for user display
+      final desc = p['description'] as String? ?? '';
+      if (desc.trim().startsWith('{') && desc.trim().endsWith('}')) {
+        try {
+          final Map<String, dynamic> decoded = json.decode(desc);
+          mapped['description'] = decoded['text'] as String? ?? '';
+        } catch (_) {
+          mapped['description'] = desc;
+        }
+      } else {
+        mapped['description'] = desc;
+      }
       return mapped;
     }).toList();
   }
@@ -477,11 +491,12 @@ class SupabaseProductRepository implements ProductRepository {
     required bool isAvailable,
     required bool isEnabled,
   }) async {
+    final encodedDesc = json.encode({'text': description});
     await _client.from('products').insert({
       'name': name,
       'category_id': categoryId,
       'image_path': '',
-      'description': description,
+      'description': encodedDesc,
       'price': price,
       'unit': unit,
       'is_available': isAvailable,
@@ -500,10 +515,24 @@ class SupabaseProductRepository implements ProductRepository {
     required bool isAvailable,
     required bool isEnabled,
   }) async {
+    // Fetch current product to merge newer properties and avoid overwriting stock/etc.
+    String mergedDescription = json.encode({'text': description});
+    try {
+      final existing = await _client.from('products').select('description').eq('id', id).maybeSingle();
+      if (existing != null) {
+        final existingDesc = existing['description'] as String? ?? '';
+        if (existingDesc.trim().startsWith('{') && existingDesc.trim().endsWith('}')) {
+          final Map<String, dynamic> existingJson = json.decode(existingDesc);
+          existingJson['text'] = description;
+          mergedDescription = json.encode(existingJson);
+        }
+      }
+    } catch (_) {}
+
     await _client.from('products').update({
       'name': name,
       'category_id': categoryId,
-      'description': description,
+      'description': mergedDescription,
       'price': price,
       'unit': unit,
       'is_available': isAvailable,
@@ -530,6 +559,7 @@ class SupabaseProductRepository implements ProductRepository {
     }).eq('id', id);
   }
 }
+
 
 class SupabaseCustomerRepository implements CustomerRepository {
   final SupabaseClient _client = Supabase.instance.client;
