@@ -325,7 +325,10 @@ class SQLiteProductRepository implements ProductRepository {
   @override
   Future<void> deleteProduct(String id) async {
     final db = await _dbHelper.database;
-    await db.delete('products', where: 'id = ?', whereArgs: [id]);
+    await db.transaction((txn) async {
+      await txn.update('order_items', {'product_id': null}, where: 'product_id = ?', whereArgs: [id]);
+      await txn.delete('products', where: 'id = ?', whereArgs: [id]);
+    });
   }
 
   @override
@@ -736,6 +739,9 @@ class SupabaseProductRepository implements ProductRepository {
 
   @override
   Future<void> deleteProduct(String id) async {
+    try {
+      await _client.from('order_items').update({'product_id': null}).eq('product_id', id);
+    } catch (_) {}
     await _client.from('products').delete().eq('id', id);
   }
 
