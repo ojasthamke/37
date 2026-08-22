@@ -27,6 +27,19 @@ abstract class ProductRepository {
     required String unit,
     required bool isAvailable,
     required bool isEnabled,
+    double costPrice = 0.0,
+    double marketPrice = 0.0,
+    double stock = 0.0,
+    double minStock = 0.0,
+    String barcode = '',
+    double weightPerPiece = 0.25,
+    int sequenceNo = 0,
+    String expiryDate = '',
+    String batchNumber = '',
+    bool prescriptionRequired = false,
+    String dosageInfo = '',
+    String bestBefore = '',
+    String packDate = '',
   });
   Future<void> updateProduct({
     required String id,
@@ -37,6 +50,19 @@ abstract class ProductRepository {
     required String unit,
     required bool isAvailable,
     required bool isEnabled,
+    double costPrice = 0.0,
+    double marketPrice = 0.0,
+    double stock = 0.0,
+    double minStock = 0.0,
+    String barcode = '',
+    double weightPerPiece = 0.25,
+    int sequenceNo = 0,
+    String expiryDate = '',
+    String batchNumber = '',
+    bool prescriptionRequired = false,
+    String dosageInfo = '',
+    String bestBefore = '',
+    String packDate = '',
   });
   Future<void> deleteProduct(String id);
   Future<void> toggleProduct(String id, bool isEnabled);
@@ -154,7 +180,35 @@ class SQLiteProductRepository implements ProductRepository {
       ORDER BY products.name ASC
     ''';
 
-    return await db.rawQuery(query, whereArgs);
+    final List<Map<String, dynamic>> res = await db.rawQuery(query, whereArgs);
+    return res.map((p) {
+      final Map<String, dynamic> mapped = Map.from(p);
+      final desc = p['description'] as String? ?? '';
+      if (desc.trim().startsWith('{') && desc.trim().endsWith('}')) {
+        try {
+          final Map<String, dynamic> decoded = json.decode(desc);
+          mapped['description'] = decoded['text'] as String? ?? '';
+          mapped['cost_price'] = (decoded['cost_price'] as num?)?.toDouble() ?? 0.0;
+          mapped['market_price'] = (decoded['market_price'] as num?)?.toDouble() ?? 0.0;
+          mapped['stock'] = (decoded['stock'] as num?)?.toDouble() ?? 0.0;
+          mapped['min_stock'] = (decoded['min_stock'] as num?)?.toDouble() ?? 0.0;
+          mapped['barcode'] = decoded['barcode'] as String? ?? '';
+          mapped['weight_per_piece'] = (decoded['weight_per_piece'] as num?)?.toDouble() ?? 0.25;
+          mapped['sequence_no'] = decoded['sequence_no'] as int? ?? decoded['serial_no'] as int? ?? 0;
+          mapped['expiry_date'] = decoded['expiry_date'] as String? ?? '';
+          mapped['batch_number'] = decoded['batch_number'] as String? ?? '';
+          mapped['prescription_required'] = decoded['prescription_required'] as bool? ?? false;
+          mapped['dosage_info'] = decoded['dosage_info'] as String? ?? '';
+          mapped['best_before'] = decoded['best_before'] as String? ?? '';
+          mapped['pack_date'] = decoded['pack_date'] as String? ?? '';
+        } catch (_) {
+          mapped['description'] = desc;
+        }
+      } else {
+        mapped['description'] = desc;
+      }
+      return mapped;
+    }).toList();
   }
 
   @override
@@ -166,14 +220,43 @@ class SQLiteProductRepository implements ProductRepository {
     required String unit,
     required bool isAvailable,
     required bool isEnabled,
+    double costPrice = 0.0,
+    double marketPrice = 0.0,
+    double stock = 0.0,
+    double minStock = 0.0,
+    String barcode = '',
+    double weightPerPiece = 0.25,
+    int sequenceNo = 0,
+    String expiryDate = '',
+    String batchNumber = '',
+    bool prescriptionRequired = false,
+    String dosageInfo = '',
+    String bestBefore = '',
+    String packDate = '',
   }) async {
     final db = await _dbHelper.database;
+    final encodedDesc = json.encode({
+      'text': description,
+      'cost_price': costPrice,
+      'market_price': marketPrice,
+      'stock': stock,
+      'min_stock': minStock,
+      'barcode': barcode,
+      'weight_per_piece': weightPerPiece,
+      'sequence_no': sequenceNo,
+      'expiry_date': expiryDate,
+      'batch_number': batchNumber,
+      'prescription_required': prescriptionRequired,
+      'dosage_info': dosageInfo,
+      'best_before': bestBefore,
+      'pack_date': packDate,
+    });
     await db.insert('products', {
       'id': _uuid.v4(),
       'name': name,
       'category_id': categoryId,
       'image_path': '',
-      'description': description,
+      'description': encodedDesc,
       'price': price,
       'unit': unit,
       'is_available': isAvailable ? 1 : 0,
@@ -192,14 +275,43 @@ class SQLiteProductRepository implements ProductRepository {
     required String unit,
     required bool isAvailable,
     required bool isEnabled,
+    double costPrice = 0.0,
+    double marketPrice = 0.0,
+    double stock = 0.0,
+    double minStock = 0.0,
+    String barcode = '',
+    double weightPerPiece = 0.25,
+    int sequenceNo = 0,
+    String expiryDate = '',
+    String batchNumber = '',
+    bool prescriptionRequired = false,
+    String dosageInfo = '',
+    String bestBefore = '',
+    String packDate = '',
   }) async {
     final db = await _dbHelper.database;
+    final encodedDesc = json.encode({
+      'text': description,
+      'cost_price': costPrice,
+      'market_price': marketPrice,
+      'stock': stock,
+      'min_stock': minStock,
+      'barcode': barcode,
+      'weight_per_piece': weightPerPiece,
+      'sequence_no': sequenceNo,
+      'expiry_date': expiryDate,
+      'batch_number': batchNumber,
+      'prescription_required': prescriptionRequired,
+      'dosage_info': dosageInfo,
+      'best_before': bestBefore,
+      'pack_date': packDate,
+    });
     await db.update(
       'products',
       {
         'name': name,
         'category_id': categoryId,
-        'description': description,
+        'description': encodedDesc,
         'price': price,
         'unit': unit,
         'is_available': isAvailable ? 1 : 0,
@@ -465,12 +577,25 @@ class SupabaseProductRepository implements ProductRepository {
       final cat = p['categories'] as Map<String, dynamic>?;
       mapped['category_name'] = cat != null ? cat['name'] : 'N/A';
       
-      // If description contains JSON, parse and extract 'text' for user display
+      // If description contains JSON, parse and extract 'text' and other fields
       final desc = p['description'] as String? ?? '';
       if (desc.trim().startsWith('{') && desc.trim().endsWith('}')) {
         try {
           final Map<String, dynamic> decoded = json.decode(desc);
           mapped['description'] = decoded['text'] as String? ?? '';
+          mapped['cost_price'] = (decoded['cost_price'] as num?)?.toDouble() ?? 0.0;
+          mapped['market_price'] = (decoded['market_price'] as num?)?.toDouble() ?? 0.0;
+          mapped['stock'] = (decoded['stock'] as num?)?.toDouble() ?? 0.0;
+          mapped['min_stock'] = (decoded['min_stock'] as num?)?.toDouble() ?? 0.0;
+          mapped['barcode'] = decoded['barcode'] as String? ?? '';
+          mapped['weight_per_piece'] = (decoded['weight_per_piece'] as num?)?.toDouble() ?? 0.25;
+          mapped['sequence_no'] = decoded['sequence_no'] as int? ?? decoded['serial_no'] as int? ?? 0;
+          mapped['expiry_date'] = decoded['expiry_date'] as String? ?? '';
+          mapped['batch_number'] = decoded['batch_number'] as String? ?? '';
+          mapped['prescription_required'] = decoded['prescription_required'] as bool? ?? false;
+          mapped['dosage_info'] = decoded['dosage_info'] as String? ?? '';
+          mapped['best_before'] = decoded['best_before'] as String? ?? '';
+          mapped['pack_date'] = decoded['pack_date'] as String? ?? '';
         } catch (_) {
           mapped['description'] = desc;
         }
@@ -490,8 +615,36 @@ class SupabaseProductRepository implements ProductRepository {
     required String unit,
     required bool isAvailable,
     required bool isEnabled,
+    double costPrice = 0.0,
+    double marketPrice = 0.0,
+    double stock = 0.0,
+    double minStock = 0.0,
+    String barcode = '',
+    double weightPerPiece = 0.25,
+    int sequenceNo = 0,
+    String expiryDate = '',
+    String batchNumber = '',
+    bool prescriptionRequired = false,
+    String dosageInfo = '',
+    String bestBefore = '',
+    String packDate = '',
   }) async {
-    final encodedDesc = json.encode({'text': description});
+    final encodedDesc = json.encode({
+      'text': description,
+      'cost_price': costPrice,
+      'market_price': marketPrice,
+      'stock': stock,
+      'min_stock': minStock,
+      'barcode': barcode,
+      'weight_per_piece': weightPerPiece,
+      'sequence_no': sequenceNo,
+      'expiry_date': expiryDate,
+      'batch_number': batchNumber,
+      'prescription_required': prescriptionRequired,
+      'dosage_info': dosageInfo,
+      'best_before': bestBefore,
+      'pack_date': packDate,
+    });
     await _client.from('products').insert({
       'name': name,
       'category_id': categoryId,
@@ -514,9 +667,37 @@ class SupabaseProductRepository implements ProductRepository {
     required String unit,
     required bool isAvailable,
     required bool isEnabled,
+    double costPrice = 0.0,
+    double marketPrice = 0.0,
+    double stock = 0.0,
+    double minStock = 0.0,
+    String barcode = '',
+    double weightPerPiece = 0.25,
+    int sequenceNo = 0,
+    String expiryDate = '',
+    String batchNumber = '',
+    bool prescriptionRequired = false,
+    String dosageInfo = '',
+    String bestBefore = '',
+    String packDate = '',
   }) async {
-    // Fetch current product to merge newer properties and avoid overwriting stock/etc.
-    String mergedDescription = json.encode({'text': description});
+    // Fetch current product to merge other fields
+    String mergedDescription = json.encode({
+      'text': description,
+      'cost_price': costPrice,
+      'market_price': marketPrice,
+      'stock': stock,
+      'min_stock': minStock,
+      'barcode': barcode,
+      'weight_per_piece': weightPerPiece,
+      'sequence_no': sequenceNo,
+      'expiry_date': expiryDate,
+      'batch_number': batchNumber,
+      'prescription_required': prescriptionRequired,
+      'dosage_info': dosageInfo,
+      'best_before': bestBefore,
+      'pack_date': packDate,
+    });
     try {
       final existing = await _client.from('products').select('description').eq('id', id).maybeSingle();
       if (existing != null) {
@@ -524,6 +705,19 @@ class SupabaseProductRepository implements ProductRepository {
         if (existingDesc.trim().startsWith('{') && existingDesc.trim().endsWith('}')) {
           final Map<String, dynamic> existingJson = json.decode(existingDesc);
           existingJson['text'] = description;
+          existingJson['cost_price'] = costPrice;
+          existingJson['market_price'] = marketPrice;
+          existingJson['stock'] = stock;
+          existingJson['min_stock'] = minStock;
+          existingJson['barcode'] = barcode;
+          existingJson['weight_per_piece'] = weightPerPiece;
+          existingJson['sequence_no'] = sequenceNo;
+          existingJson['expiry_date'] = expiryDate;
+          existingJson['batch_number'] = batchNumber;
+          existingJson['prescription_required'] = prescriptionRequired;
+          existingJson['dosage_info'] = dosageInfo;
+          existingJson['best_before'] = bestBefore;
+          existingJson['pack_date'] = packDate;
           mergedDescription = json.encode(existingJson);
         }
       }

@@ -185,12 +185,27 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
                                       style: TextStyle(color: Colors.grey[600], fontSize: 12),
                                     ),
                                     const SizedBox(height: 4),
-                                    Text(
-                                      '₹${(p['price'] as num?)?.toStringAsFixed(2) ?? '0.00'} / ${p['unit']}',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: theme.colorScheme.primary,
-                                      ),
+                                    Row(
+                                      children: [
+                                        Text(
+                                          '₹${(p['price'] as num?)?.toStringAsFixed(2) ?? '0.00'} / ${p['unit']}',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: theme.colorScheme.primary,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Text(
+                                          'Stock: ${p['stock'] ?? 0.0}',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                            color: ((p['stock'] as num?)?.toDouble() ?? 0.0) <= ((p['min_stock'] as num?)?.toDouble() ?? 0.0)
+                                                ? Colors.red
+                                                : Colors.grey[700],
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ],
                                 ),

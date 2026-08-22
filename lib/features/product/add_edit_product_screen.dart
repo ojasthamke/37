@@ -18,6 +18,21 @@ class _AddEditProductScreenState extends ConsumerState<AddEditProductScreen> {
   late TextEditingController _descriptionController;
   late TextEditingController _priceController;
   
+  // Extra compatible inventory fields
+  late TextEditingController _costPriceController;
+  late TextEditingController _marketPriceController;
+  late TextEditingController _stockController;
+  late TextEditingController _minStockController;
+  late TextEditingController _barcodeController;
+  late TextEditingController _weightPerPieceController;
+  late TextEditingController _sequenceController;
+  late TextEditingController _expiryDateController;
+  late TextEditingController _batchNumberController;
+  late TextEditingController _dosageInfoController;
+  late TextEditingController _bestBeforeController;
+  late TextEditingController _packDateController;
+  bool _prescriptionRequired = false;
+
   String? _selectedCategoryId;
   String _selectedUnit = 'kg';
   bool _isAvailable = true;
@@ -35,6 +50,21 @@ class _AddEditProductScreenState extends ConsumerState<AddEditProductScreen> {
     _descriptionController = TextEditingController(text: isEdit ? p['description'] : '');
     _priceController = TextEditingController(text: isEdit ? p['price'].toString() : '');
     
+    // Parse extra properties from json-decoded description fields
+    _costPriceController = TextEditingController(text: isEdit ? (p['cost_price']?.toString() ?? '') : '');
+    _marketPriceController = TextEditingController(text: isEdit ? (p['market_price']?.toString() ?? '') : '');
+    _stockController = TextEditingController(text: isEdit ? (p['stock']?.toString() ?? '') : '');
+    _minStockController = TextEditingController(text: isEdit ? (p['min_stock']?.toString() ?? '') : '');
+    _barcodeController = TextEditingController(text: isEdit ? (p['barcode'] ?? '') : '');
+    _weightPerPieceController = TextEditingController(text: isEdit ? (p['weight_per_piece']?.toString() ?? '0.25') : '0.25');
+    _sequenceController = TextEditingController(text: isEdit ? (p['sequence_no']?.toString() ?? '') : '');
+    _expiryDateController = TextEditingController(text: isEdit ? (p['expiry_date'] ?? '') : '');
+    _batchNumberController = TextEditingController(text: isEdit ? (p['batch_number'] ?? '') : '');
+    _dosageInfoController = TextEditingController(text: isEdit ? (p['dosage_info'] ?? '') : '');
+    _bestBeforeController = TextEditingController(text: isEdit ? (p['best_before'] ?? '') : '');
+    _packDateController = TextEditingController(text: isEdit ? (p['pack_date'] ?? '') : '');
+    _prescriptionRequired = isEdit ? (p['prescription_required'] == true) : false;
+
     _selectedCategoryId = isEdit ? p['category_id'] : null;
     _selectedUnit = isEdit ? (p['unit'] ?? 'kg') : 'kg';
     _isAvailable = isEdit ? (p['is_available'] == true || p['is_available'] == 1) : true;
@@ -46,6 +76,18 @@ class _AddEditProductScreenState extends ConsumerState<AddEditProductScreen> {
     _nameController.dispose();
     _descriptionController.dispose();
     _priceController.dispose();
+    _costPriceController.dispose();
+    _marketPriceController.dispose();
+    _stockController.dispose();
+    _minStockController.dispose();
+    _barcodeController.dispose();
+    _weightPerPieceController.dispose();
+    _sequenceController.dispose();
+    _expiryDateController.dispose();
+    _batchNumberController.dispose();
+    _dosageInfoController.dispose();
+    _bestBeforeController.dispose();
+    _packDateController.dispose();
     super.dispose();
   }
 
@@ -54,6 +96,20 @@ class _AddEditProductScreenState extends ConsumerState<AddEditProductScreen> {
       final name = _nameController.text.trim();
       final description = _descriptionController.text.trim();
       final price = double.tryParse(_priceController.text) ?? 0.0;
+      
+      final costPrice = double.tryParse(_costPriceController.text) ?? 0.0;
+      final marketPrice = double.tryParse(_marketPriceController.text) ?? 0.0;
+      final stock = double.tryParse(_stockController.text) ?? 0.0;
+      final minStock = double.tryParse(_minStockController.text) ?? 0.0;
+      final barcode = _barcodeController.text.trim();
+      final weightPerPiece = double.tryParse(_weightPerPieceController.text) ?? 0.25;
+      final sequenceNo = int.tryParse(_sequenceController.text) ?? 0;
+      final expiryDate = _expiryDateController.text.trim();
+      final batchNumber = _batchNumberController.text.trim();
+      final dosageInfo = _dosageInfoController.text.trim();
+      final bestBefore = _bestBeforeController.text.trim();
+      final packDate = _packDateController.text.trim();
+
       final isEdit = widget.product != null;
 
       if (isEdit) {
@@ -66,6 +122,19 @@ class _AddEditProductScreenState extends ConsumerState<AddEditProductScreen> {
               unit: _selectedUnit,
               isAvailable: _isAvailable,
               isEnabled: _isEnabled,
+              costPrice: costPrice,
+              marketPrice: marketPrice,
+              stock: stock,
+              minStock: minStock,
+              barcode: barcode,
+              weightPerPiece: weightPerPiece,
+              sequenceNo: sequenceNo,
+              expiryDate: expiryDate,
+              batchNumber: batchNumber,
+              prescriptionRequired: _prescriptionRequired,
+              dosageInfo: dosageInfo,
+              bestBefore: bestBefore,
+              packDate: packDate,
             );
       } else {
         ref.read(productListProvider.notifier).addProduct(
@@ -76,6 +145,19 @@ class _AddEditProductScreenState extends ConsumerState<AddEditProductScreen> {
               unit: _selectedUnit,
               isAvailable: _isAvailable,
               isEnabled: _isEnabled,
+              costPrice: costPrice,
+              marketPrice: marketPrice,
+              stock: stock,
+              minStock: minStock,
+              barcode: barcode,
+              weightPerPiece: weightPerPiece,
+              sequenceNo: sequenceNo,
+              expiryDate: expiryDate,
+              batchNumber: batchNumber,
+              prescriptionRequired: _prescriptionRequired,
+              dosageInfo: dosageInfo,
+              bestBefore: bestBefore,
+              packDate: packDate,
             );
       }
 
@@ -100,18 +182,18 @@ class _AddEditProductScreenState extends ConsumerState<AddEditProductScreen> {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, stack) => Center(child: Text('Error loading categories: $err')),
         data: (categories) {
-          // Verify if the selected category still exists, if not clear it
           if (_selectedCategoryId != null && !categories.any((c) => c['id'] == _selectedCategoryId)) {
             _selectedCategoryId = null;
           }
 
           return SingleChildScrollView(
-            padding: const EdgeInsets.all(24.0),
+            padding: const EdgeInsets.all(20.0),
             child: Form(
               key: _formKey,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // 1. Basic Info
                   Card(
                     child: Padding(
                       padding: const EdgeInsets.all(16.0),
@@ -125,9 +207,7 @@ class _AddEditProductScreenState extends ConsumerState<AddEditProductScreen> {
                               color: theme.colorScheme.primary,
                             ),
                           ),
-                          const Divider(height: 24),
-                          
-                          // Name Input
+                          const Divider(height: 20),
                           TextFormField(
                             controller: _nameController,
                             decoration: const InputDecoration(
@@ -136,14 +216,12 @@ class _AddEditProductScreenState extends ConsumerState<AddEditProductScreen> {
                             ),
                             validator: (val) {
                               if (val == null || val.trim().isEmpty) {
-                                  return 'Please enter product name';
+                                return 'Please enter product name';
                               }
                               return null;
                             },
                           ),
-                          const SizedBox(height: 20),
-                          
-                          // Category Dropdown
+                          const SizedBox(height: 16),
                           DropdownButtonFormField<String>(
                             value: _selectedCategoryId,
                             decoration: const InputDecoration(
@@ -167,24 +245,22 @@ class _AddEditProductScreenState extends ConsumerState<AddEditProductScreen> {
                               });
                             },
                           ),
-                          const SizedBox(height: 20),
-                          
-                          // Description Input
+                          const SizedBox(height: 16),
                           TextFormField(
                             controller: _descriptionController,
                             decoration: const InputDecoration(
                               labelText: 'Description',
-                              hintText: 'e.g. Fresh potatoes from Punjab farms',
+                              hintText: 'e.g. Fresh organic potatoes',
                             ),
-                            maxLines: 3,
+                            maxLines: 2,
                           ),
                         ],
                       ),
                     ),
                   ),
-                  const SizedBox(height: 20),
-                  
-                  // Pricing & Stock Card
+                  const SizedBox(height: 16),
+
+                  // 2. Pricing & Stock
                   Card(
                     child: Padding(
                       padding: const EdgeInsets.all(16.0),
@@ -198,42 +274,55 @@ class _AddEditProductScreenState extends ConsumerState<AddEditProductScreen> {
                               color: theme.colorScheme.primary,
                             ),
                           ),
-                          const Divider(height: 24),
-                          
+                          const Divider(height: 20),
                           Row(
                             children: [
-                              // Price Input
                               Expanded(
-                                flex: 3,
                                 child: TextFormField(
                                   controller: _priceController,
                                   decoration: const InputDecoration(
-                                    labelText: 'Price (₹)',
-                                    hintText: 'e.g. 45.00',
+                                    labelText: 'Selling Price (₹)',
                                     prefixText: '₹ ',
                                   ),
                                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
                                   validator: (val) {
-                                    if (val == null || val.isEmpty) {
-                                      return 'Please enter price';
-                                    }
-                                    if (double.tryParse(val) == null) {
-                                      return 'Please enter a valid number';
-                                    }
+                                    if (val == null || val.isEmpty) return 'Please enter price';
+                                    if (double.tryParse(val) == null) return 'Enter a number';
                                     return null;
                                   },
                                 ),
                               ),
-                              const SizedBox(width: 16),
-                              
-                              // Unit Dropdown
+                              const SizedBox(width: 12),
                               Expanded(
-                                flex: 2,
+                                child: TextFormField(
+                                  controller: _costPriceController,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Cost Price (₹)',
+                                    prefixText: '₹ ',
+                                  ),
+                                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: TextFormField(
+                                  controller: _marketPriceController,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Market Price (MRP ₹)',
+                                    prefixText: '₹ ',
+                                  ),
+                                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
                                 child: DropdownButtonFormField<String>(
                                   value: _selectedUnit,
-                                  decoration: const InputDecoration(
-                                    labelText: 'Unit',
-                                  ),
+                                  decoration: const InputDecoration(labelText: 'Unit'),
                                   items: _units.map((unit) {
                                     return DropdownMenuItem<String>(
                                       value: unit,
@@ -251,13 +340,205 @@ class _AddEditProductScreenState extends ConsumerState<AddEditProductScreen> {
                               ),
                             ],
                           ),
-                          const SizedBox(height: 24),
-                          
-                          // Availability Toggle
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: TextFormField(
+                                  controller: _stockController,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Stock Qty',
+                                  ),
+                                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: TextFormField(
+                                  controller: _minStockController,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Min Stock Alert Qty',
+                                  ),
+                                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // 3. Identifiers
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Identifiers & Sorting',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: theme.colorScheme.primary,
+                            ),
+                          ),
+                          const Divider(height: 20),
+                          TextFormField(
+                            controller: _barcodeController,
+                            decoration: const InputDecoration(
+                              labelText: 'Barcode',
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          TextFormField(
+                            controller: _sequenceController,
+                            decoration: const InputDecoration(
+                              labelText: 'Sequence No (Sorting Order)',
+                            ),
+                            keyboardType: TextInputType.number,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // 4. Pharmacy & Medicine Info
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Medicine / Pharmacy Info',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: theme.colorScheme.primary,
+                            ),
+                          ),
+                          const Divider(height: 20),
+                          SwitchListTile(
+                            contentPadding: EdgeInsets.zero,
+                            title: const Text('Prescription Required (Rx)'),
+                            value: _prescriptionRequired,
+                            onChanged: (val) {
+                              setState(() {
+                                _prescriptionRequired = val;
+                              });
+                            },
+                          ),
+                          const SizedBox(height: 8),
+                          TextFormField(
+                            controller: _dosageInfoController,
+                            decoration: const InputDecoration(
+                              labelText: 'Dosage / Directions Info',
+                              hintText: 'e.g. 1-0-1 after food',
+                            ),
+                            maxLines: 2,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // 5. Groceries / Advanced Settings
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Grocery / Dates Info',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: theme.colorScheme.primary,
+                            ),
+                          ),
+                          const Divider(height: 20),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: TextFormField(
+                                  controller: _expiryDateController,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Expiry Date',
+                                    hintText: 'YYYY-MM-DD',
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: TextFormField(
+                                  controller: _batchNumberController,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Batch Number',
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: TextFormField(
+                                  controller: _bestBeforeController,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Best Before Info',
+                                    hintText: 'e.g. 6 Months',
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: TextFormField(
+                                  controller: _packDateController,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Pack Date',
+                                    hintText: 'YYYY-MM-DD',
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          TextFormField(
+                            controller: _weightPerPieceController,
+                            decoration: const InputDecoration(
+                              labelText: 'Weight per Piece (kg)',
+                            ),
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Status Toggles
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Availability & Status',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: theme.colorScheme.primary,
+                            ),
+                          ),
+                          const Divider(height: 20),
                           SwitchListTile(
                             contentPadding: EdgeInsets.zero,
                             title: const Text('Available (In Stock)'),
-                            subtitle: const Text('Customers will see Out of Stock if disabled'),
+                            subtitle: const Text('Shows Out of Stock if disabled'),
                             value: _isAvailable,
                             onChanged: (val) {
                               setState(() {
@@ -265,8 +546,6 @@ class _AddEditProductScreenState extends ConsumerState<AddEditProductScreen> {
                               });
                             },
                           ),
-                          
-                          // Enabled Toggle
                           SwitchListTile(
                             contentPadding: EdgeInsets.zero,
                             title: const Text('Product Status (Enabled)'),
@@ -282,12 +561,12 @@ class _AddEditProductScreenState extends ConsumerState<AddEditProductScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 32),
-                  
+                  const SizedBox(height: 24),
+
                   // Submit Button
                   SizedBox(
                     width: double.infinity,
-                    height: 52,
+                    height: 50,
                     child: ElevatedButton(
                       onPressed: _save,
                       child: Text(

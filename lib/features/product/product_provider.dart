@@ -99,6 +99,19 @@ class ProductListNotifier extends StateNotifier<AsyncValue<List<Map<String, dyna
     required String unit,
     required bool isAvailable,
     required bool isEnabled,
+    double costPrice = 0.0,
+    double marketPrice = 0.0,
+    double stock = 0.0,
+    double minStock = 0.0,
+    String barcode = '',
+    double weightPerPiece = 0.25,
+    int sequenceNo = 0,
+    String expiryDate = '',
+    String batchNumber = '',
+    bool prescriptionRequired = false,
+    String dosageInfo = '',
+    String bestBefore = '',
+    String packDate = '',
   }) async {
     try {
       final repo = _ref.read(productRepositoryProvider);
@@ -110,6 +123,19 @@ class ProductListNotifier extends StateNotifier<AsyncValue<List<Map<String, dyna
         unit: unit,
         isAvailable: isAvailable,
         isEnabled: isEnabled,
+        costPrice: costPrice,
+        marketPrice: marketPrice,
+        stock: stock,
+        minStock: minStock,
+        barcode: barcode,
+        weightPerPiece: weightPerPiece,
+        sequenceNo: sequenceNo,
+        expiryDate: expiryDate,
+        batchNumber: batchNumber,
+        prescriptionRequired: prescriptionRequired,
+        dosageInfo: dosageInfo,
+        bestBefore: bestBefore,
+        packDate: packDate,
       );
       await refresh();
     } catch (e) {
@@ -126,6 +152,19 @@ class ProductListNotifier extends StateNotifier<AsyncValue<List<Map<String, dyna
     required String unit,
     required bool isAvailable,
     required bool isEnabled,
+    double costPrice = 0.0,
+    double marketPrice = 0.0,
+    double stock = 0.0,
+    double minStock = 0.0,
+    String barcode = '',
+    double weightPerPiece = 0.25,
+    int sequenceNo = 0,
+    String expiryDate = '',
+    String batchNumber = '',
+    bool prescriptionRequired = false,
+    String dosageInfo = '',
+    String bestBefore = '',
+    String packDate = '',
   }) async {
     try {
       final repo = _ref.read(productRepositoryProvider);
@@ -138,6 +177,19 @@ class ProductListNotifier extends StateNotifier<AsyncValue<List<Map<String, dyna
         unit: unit,
         isAvailable: isAvailable,
         isEnabled: isEnabled,
+        costPrice: costPrice,
+        marketPrice: marketPrice,
+        stock: stock,
+        minStock: minStock,
+        barcode: barcode,
+        weightPerPiece: weightPerPiece,
+        sequenceNo: sequenceNo,
+        expiryDate: expiryDate,
+        batchNumber: batchNumber,
+        prescriptionRequired: prescriptionRequired,
+        dosageInfo: dosageInfo,
+        bestBefore: bestBefore,
+        packDate: packDate,
       );
       await refresh();
     } catch (e) {
