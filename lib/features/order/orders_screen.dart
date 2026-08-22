@@ -28,7 +28,14 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> with SingleTickerPr
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: _statuses.length, vsync: this);
+    _searchController.text = ref.read(orderFilterProvider).search;
+    final initialStatus = ref.read(orderFilterProvider).status;
+    final initialIndex = _statuses.indexOf(initialStatus);
+    _tabController = TabController(
+      length: _statuses.length,
+      vsync: this,
+      initialIndex: initialIndex >= 0 ? initialIndex : 0,
+    );
     _tabController.addListener(() {
       if (!_tabController.indexIsChanging) {
         ref.read(orderFilterProvider.notifier).setStatus(_statuses[_tabController.index]);

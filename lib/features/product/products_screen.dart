@@ -15,6 +15,12 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
   final _searchController = TextEditingController();
 
   @override
+  void initState() {
+    super.initState();
+    _searchController.text = ref.read(productFilterProvider).search;
+  }
+
+  @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
