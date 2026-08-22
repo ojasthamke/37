@@ -79,8 +79,9 @@ final dashboardStatsProvider = FutureProvider<DashboardStats>((ref) async {
   
   final recentOrders = sortedOrders.take(5).map((o) {
     final map = Map<String, dynamic>.from(o);
-    if (map['customers'] != null && map['customers']['name'] != null) {
-      map['customer_name'] = map['customers']['name'];
+    final cust = map['customers'];
+    if (cust is Map<String, dynamic> && cust['name'] != null) {
+      map['customer_name'] = cust['name'];
     }
     return map;
   }).toList();
@@ -111,7 +112,14 @@ class DashboardScreen extends ConsumerWidget {
         data: (stats) {
           final isLargeScreen = MediaQuery.of(context).size.width >= 600;
           return RefreshIndicator(
-            onRefresh: () => ref.refresh(dashboardStatsProvider.future),
+            onRefresh: () async {
+              await Future.wait([
+                ref.read(orderListProvider.notifier).refresh(),
+                ref.read(productListProvider.notifier).refresh(),
+                ref.read(customerListProvider.notifier).refresh(),
+                ref.refresh(dashboardStatsProvider.future),
+              ]);
+            },
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.all(24.0),
@@ -317,26 +325,34 @@ class DashboardScreen extends ConsumerWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 8),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  value,
-                  style: theme.textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: theme.colorScheme.onSurface,
+            const SizedBox(height: 4),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      value,
+                      style: theme.textTheme.headlineMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: theme.colorScheme.onSurface,
+                      ),
+                    ),
                   ),
-                ),
-                Text(
-                  title,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: Colors.grey[600],
-                    fontWeight: FontWeight.w500,
+                  const SizedBox(height: 2),
+                  Text(
+                    title,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: Colors.grey[600],
+                      fontWeight: FontWeight.w500,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
+                ],
+              ),
             ),
           ],
         ),
