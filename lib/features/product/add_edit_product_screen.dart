@@ -118,6 +118,16 @@ class _AddEditProductScreenState extends ConsumerState<AddEditProductScreen> {
       final extension = image.name.split('.').last.toLowerCase();
       final fileName = 'product_${DateTime.now().millisecondsSinceEpoch}.$extension';
 
+      // Try to create the bucket first, in case it was not created via SQL editor
+      try {
+        await Supabase.instance.client.storage.createBucket(
+          'product-images',
+          const BucketOptions(public: true),
+        );
+      } catch (_) {
+        // Safe to ignore if already exists or if client has no permissions to create
+      }
+
       // Upload to Supabase Storage
       await Supabase.instance.client.storage
           .from('product-images')
