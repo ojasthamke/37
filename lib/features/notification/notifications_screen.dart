@@ -41,7 +41,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
       final client = Supabase.instance.client;
       final res = await client
           .from('notifications')
-          .select('*, customers(name, phone)')
+          .select('*')
           .order('created_at', ascending: false);
       setState(() {
         _sentHistory = List<Map<String, dynamic>>.from(res);
@@ -103,6 +103,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   Widget build(BuildContext context) {
     final customersAsync = ref.watch(customerListProvider);
     final theme = Theme.of(context);
+    final List<dynamic> customersList = customersAsync.value ?? [];
 
     return Scaffold(
       body: Row(
@@ -278,10 +279,18 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                               padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                               itemBuilder: (context, index) {
                                 final notif = _sentHistory[index];
-                                final cust = notif['customers'] as Map<String, dynamic>?;
-                                final targetLabel = cust != null
-                                    ? 'To: ${cust['name']}'
-                                    : 'To: All Customers';
+                                final targetCustId = notif['customer_id'] as String?;
+                                final isDirect = targetCustId != null;
+
+                                String targetLabel = 'To: All Customers';
+                                if (isDirect) {
+                                  final matched = customersList.firstWhere(
+                                    (c) => c['id'] == targetCustId,
+                                    orElse: () => null,
+                                  );
+                                  final name = matched != null ? matched['name'] : 'Direct Customer';
+                                  targetLabel = 'To: $name';
+                                }
 
                                 return Card(
                                   margin: const EdgeInsets.only(bottom: 12.0),
@@ -305,15 +314,15 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                                             Container(
                                               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                               decoration: BoxDecoration(
-                                                color: cust != null ? Colors.blue[50] : Colors.green[50],
+                                                color: isDirect ? Colors.blue[50] : Colors.green[50],
                                                 borderRadius: BorderRadius.circular(4),
                                               ),
                                               child: Text(
-                                                cust != null ? 'Direct' : 'Broadcast',
+                                                isDirect ? 'Direct' : 'Broadcast',
                                                 style: TextStyle(
                                                   fontSize: 9,
                                                   fontWeight: FontWeight.bold,
-                                                  color: cust != null ? Colors.blue[800] : Colors.green[800],
+                                                  color: isDirect ? Colors.blue[800] : Colors.green[800],
                                                 ),
                                               ),
                                             ),

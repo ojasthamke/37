@@ -191,7 +191,7 @@ class SQLiteProductRepository implements ProductRepository {
           final Map<String, dynamic> decoded = json.decode(desc);
           mapped['description'] = decoded['text'] as String? ?? '';
           mapped['cost_price'] = (decoded['cost_price'] as num?)?.toDouble() ?? 0.0;
-          mapped['market_price'] = (decoded['market_price'] as num?)?.toDouble() ?? 0.0;
+          mapped['market_price'] = ((decoded['market_price'] ?? decoded['mrp']) as num?)?.toDouble() ?? 0.0;
           mapped['stock'] = (decoded['stock'] as num?)?.toDouble() ?? 0.0;
           mapped['min_stock'] = (decoded['min_stock'] as num?)?.toDouble() ?? 0.0;
           mapped['barcode'] = decoded['barcode'] as String? ?? '';
@@ -242,6 +242,7 @@ class SQLiteProductRepository implements ProductRepository {
       'text': description,
       'cost_price': costPrice,
       'market_price': marketPrice,
+      'mrp': marketPrice,
       'stock': stock,
       'min_stock': minStock,
       'barcode': barcode,
@@ -298,6 +299,7 @@ class SQLiteProductRepository implements ProductRepository {
       'text': description,
       'cost_price': costPrice,
       'market_price': marketPrice,
+      'mrp': marketPrice,
       'stock': stock,
       'min_stock': minStock,
       'barcode': barcode,
@@ -598,7 +600,7 @@ class SupabaseProductRepository implements ProductRepository {
           final Map<String, dynamic> decoded = json.decode(desc);
           mapped['description'] = decoded['text'] as String? ?? '';
           mapped['cost_price'] = (decoded['cost_price'] as num?)?.toDouble() ?? 0.0;
-          mapped['market_price'] = (decoded['market_price'] as num?)?.toDouble() ?? 0.0;
+          mapped['market_price'] = ((decoded['market_price'] ?? decoded['mrp']) as num?)?.toDouble() ?? 0.0;
           mapped['stock'] = (decoded['stock'] as num?)?.toDouble() ?? 0.0;
           mapped['min_stock'] = (decoded['min_stock'] as num?)?.toDouble() ?? 0.0;
           mapped['barcode'] = decoded['barcode'] as String? ?? '';
@@ -648,6 +650,7 @@ class SupabaseProductRepository implements ProductRepository {
       'text': description,
       'cost_price': costPrice,
       'market_price': marketPrice,
+      'mrp': marketPrice,
       'stock': stock,
       'min_stock': minStock,
       'barcode': barcode,
@@ -702,6 +705,7 @@ class SupabaseProductRepository implements ProductRepository {
       'text': description,
       'cost_price': costPrice,
       'market_price': marketPrice,
+      'mrp': marketPrice,
       'stock': stock,
       'min_stock': minStock,
       'barcode': barcode,
@@ -723,6 +727,7 @@ class SupabaseProductRepository implements ProductRepository {
           existingJson['text'] = description;
           existingJson['cost_price'] = costPrice;
           existingJson['market_price'] = marketPrice;
+          existingJson['mrp'] = marketPrice;
           existingJson['stock'] = stock;
           existingJson['min_stock'] = minStock;
           existingJson['barcode'] = barcode;
