@@ -35,10 +35,22 @@ jobs:
         run: |
           import base64
           import os
-          keystore_b64 = os.environ['KEYSTORE_BASE64']
+          keystore_b64 = os.environ.get('KEYSTORE_BASE64', '')
+          print(f"KEYSTORE_BASE64 secret length: {len(keystore_b64)}")
           clean_b64 = "".join(keystore_b64.split())
-          with open('android/app/orderkart-release.jks', 'wb') as f:
-              f.write(base64.b64decode(clean_b64))
+          print(f"Cleaned base64 length: {len(clean_b64)}")
+          if not clean_b64:
+              print("WARNING: KEYSTORE_BASE64 is empty! Build will fail.")
+          try:
+              decoded = base64.b64decode(clean_b64)
+              print(f"Decoded bytes length: {len(decoded)}")
+              if len(decoded) > 0:
+                  print(f"Decoded header hex: {decoded[:10].hex().upper()}")
+              with open('android/app/orderkart-release.jks', 'wb') as f:
+                  f.write(decoded)
+              print("Decoded keystore written successfully.")
+          except Exception as e:
+              print(f"Error decoding base64: {e}")
         shell: python
 
       - name: Create key.properties
