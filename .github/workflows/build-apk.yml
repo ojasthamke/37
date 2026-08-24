@@ -30,7 +30,16 @@ jobs:
         run: flutter pub get
 
       - name: Decode Keystore
-        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/orderkart-release.jks
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: |
+          import base64
+          import os
+          keystore_b64 = os.environ['KEYSTORE_BASE64']
+          clean_b64 = "".join(keystore_b64.split())
+          with open('android/app/orderkart-release.jks', 'wb') as f:
+              f.write(base64.b64decode(clean_b64))
+        shell: python
 
       - name: Create key.properties
         run: |
