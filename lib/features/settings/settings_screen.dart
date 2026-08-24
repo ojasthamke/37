@@ -241,90 +241,50 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           ),
                           const Divider(height: 24),
                           Text(
-                            'Use these commands to set up mock data for testing or clear database collections.',
+                            'Danger zone — use the button below to permanently wipe all data from the database. Data is synced from the OrderKart POS app.',
                             style: TextStyle(color: Colors.grey[600], fontSize: 13),
                           ),
                           const SizedBox(height: 20),
-                          Row(
-                            children: [
-                              // Seed Database button
-                              Expanded(
-                                child: ElevatedButton.icon(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.blue[700],
-                                    foregroundColor: Colors.white,
-                                  ),
-                                  onPressed: () {
-                                    showDialog(
-                                      context: context,
-                                      builder: (context) => AlertDialog(
-                                        title: const Text('Seed Database'),
-                                        content: const Text('Are you sure you want to insert mock products and customers into the LIVE Supabase production database? This will mix test data with your real customer records.'),
-                                        actions: [
-                                          TextButton(
-                                            onPressed: () => Navigator.pop(context),
-                                            child: const Text('Cancel'),
-                                          ),
-                                          ElevatedButton(
-                                            onPressed: () {
-                                              Navigator.pop(context);
-                                              ref.read(settingsProvider.notifier).seedDatabase();
-                                              ScaffoldMessenger.of(context).showSnackBar(
-                                                const SnackBar(content: Text('Mock database seeded successfully!')),
-                                              );
-                                            },
-                                            child: const Text('Seed Data'),
-                                          ),
-                                        ],
-                                      ),
-                                    );
-                                  },
-                                  icon: const Icon(Icons.playlist_add_check_rounded),
-                                  label: const Text('SEED MOCK DATA'),
-                                ),
+                          // Clear Database button (full width)
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.red[700],
+                                foregroundColor: Colors.white,
                               ),
-                              const SizedBox(width: 16),
-                              // Clear Database button
-                              Expanded(
-                                child: ElevatedButton.icon(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.red[700],
-                                    foregroundColor: Colors.white,
-                                  ),
-                                  onPressed: () {
-                                    showDialog(
-                                      context: context,
-                                      builder: (context) => AlertDialog(
-                                        title: const Text('Wipe Database'),
-                                        content: const Text('Are you sure you want to permanently clear all categories, products, orders, and customer logs from the LIVE Supabase database? This action is IRREVERSIBLE and will delete all real customer records!'),
-                                        actions: [
-                                          TextButton(
-                                            onPressed: () => Navigator.pop(context),
-                                            child: const Text('Cancel'),
-                                          ),
-                                          ElevatedButton(
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor: Colors.red,
-                                              foregroundColor: Colors.white,
-                                            ),
-                                            onPressed: () {
-                                              Navigator.pop(context);
-                                              ref.read(settingsProvider.notifier).wipeDatabase();
-                                              ScaffoldMessenger.of(context).showSnackBar(
-                                                const SnackBar(content: Text('Database cleared successfully')),
-                                              );
-                                            },
-                                            child: const Text('Wipe All'),
-                                          ),
-                                        ],
+                              onPressed: () {
+                                showDialog(
+                                  context: context,
+                                  builder: (context) => AlertDialog(
+                                    title: const Text('Wipe Database'),
+                                    content: const Text('Are you sure you want to permanently clear all categories, products, orders, and customer logs from the LIVE Supabase database? This action is IRREVERSIBLE and will delete all real customer records!'),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () => Navigator.pop(context),
+                                        child: const Text('Cancel'),
                                       ),
-                                    );
-                                  },
-                                  icon: const Icon(Icons.delete_sweep_rounded),
-                                  label: const Text('CLEAR ALL DATA'),
-                                ),
-                              ),
-                            ],
+                                      ElevatedButton(
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.red,
+                                          foregroundColor: Colors.white,
+                                        ),
+                                        onPressed: () {
+                                          Navigator.pop(context);
+                                          ref.read(settingsProvider.notifier).wipeDatabase();
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            const SnackBar(content: Text('Database cleared successfully')),
+                                          );
+                                        },
+                                        child: const Text('Wipe All'),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                              icon: const Icon(Icons.delete_sweep_rounded),
+                              label: const Text('CLEAR ALL DATA'),
+                            ),
                           ),
                         ],
                       ),
