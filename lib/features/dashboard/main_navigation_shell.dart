@@ -7,6 +7,7 @@ import '../category/categories_screen.dart';
 import '../product/products_screen.dart';
 import '../customer/customers_screen.dart';
 import '../order/orders_screen.dart';
+import '../notification/notifications_screen.dart';
 import '../settings/settings_screen.dart';
 
 class MainNavigationShell extends ConsumerStatefulWidget {
@@ -25,6 +26,7 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
     ProductsScreen(),
     CustomersScreen(),
     OrdersScreen(),
+    NotificationsScreen(),
     SettingsScreen(),
   ];
 
@@ -34,13 +36,14 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
     'Products',
     'Customers',
     'Orders',
+    'Notifications',
     'Settings',
   ];
 
   @override
   Widget build(BuildContext context) {
     final settingsState = ref.watch(settingsProvider);
-    final storeName = settingsState.values['store_name'] ?? 'ApliBhaji Store';
+    final storeName = settingsState.values['store_name'] ?? 'Orderkart Admin';
     final theme = Theme.of(context);
     final isDesktop = MediaQuery.of(context).size.width >= 900;
 
@@ -60,7 +63,7 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
                 context: context,
                 builder: (context) => AlertDialog(
                   title: const Text('Logout'),
-                  content: const Text('Are you sure you want to log out of ApliBhaji Admin?'),
+                  content: const Text('Are you sure you want to log out of Orderkart admin?'),
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.pop(context),
@@ -104,10 +107,12 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
                   CircleAvatar(
                     radius: 24,
                     backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
-                    child: Icon(
-                      Icons.store_rounded,
-                      color: theme.colorScheme.primary,
-                      size: 28,
+                    child: Padding(
+                      padding: const EdgeInsets.all(4.0),
+                      child: Image.asset(
+                        'assets/logo.jpg',
+                        fit: BoxFit.contain,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -138,6 +143,11 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
                   icon: Icon(Icons.receipt_long_outlined),
                   selectedIcon: Icon(Icons.receipt_long_rounded),
                   label: Text('Orders'),
+                ),
+                NavigationRailDestination(
+                  icon: Icon(Icons.notifications_outlined),
+                  selectedIcon: Icon(Icons.notifications_rounded),
+                  label: Text('Notifications'),
                 ),
                 NavigationRailDestination(
                   icon: Icon(Icons.settings_outlined),
@@ -189,6 +199,11 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
                   icon: Icon(Icons.receipt_long_outlined),
                   activeIcon: Icon(Icons.receipt_long_rounded),
                   label: 'Orders',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.notifications_outlined),
+                  activeIcon: Icon(Icons.notifications_rounded),
+                  label: 'Alerts',
                 ),
                 BottomNavigationBarItem(
                   icon: Icon(Icons.settings_outlined),

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/database/providers.dart';
 import '../../core/services/notification_service.dart';
 
@@ -42,6 +43,7 @@ class OrderListNotifier extends StateNotifier<AsyncValue<List<Map<String, dynami
   final Ref _ref;
   Timer? _pollTimer;
   final Set<String> _seenOrderIds = {};
+  RealtimeChannel? _channel;
 
   OrderListNotifier(this._ref) : super(const AsyncValue.loading()) {
     _ref.listen<OrderFilter>(orderFilterProvider, (previous, next) {
@@ -55,8 +57,30 @@ class OrderListNotifier extends StateNotifier<AsyncValue<List<Map<String, dynami
       silentRefresh();
     });
 
+    // Realtime changes listener for orders table
+    try {
+      final client = Supabase.instance.client;
+      _channel = client.channel('orders-realtime-changes');
+      _channel!.onPostgresChanges(
+        event: PostgresChangeEvent.all,
+        schema: 'public',
+        table: 'orders',
+        callback: (payload) {
+          debugPrint('Realtime order change detected: ${payload.eventType}');
+          silentRefresh();
+        },
+      ).subscribe();
+    } catch (e) {
+      debugPrint('Failed to initialize admin realtime orders subscription: $e');
+    }
+
     _ref.onDispose(() {
       _pollTimer?.cancel();
+      if (_channel != null) {
+        try {
+          Supabase.instance.client.removeChannel(_channel!);
+        } catch (_) {}
+      }
     });
   }
 
