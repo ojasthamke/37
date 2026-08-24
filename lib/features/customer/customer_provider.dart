@@ -60,10 +60,10 @@ class CustomerListNotifier extends StateNotifier<AsyncValue<List<Map<String, dyn
     }
   }
 
-  Future<void> updateCustomer(String id, String name, String phone, String address) async {
+  Future<void> updateCustomer(String id, String name, String phone, String address, {String? areaId, String? roadId, String? subRoadId}) async {
     try {
       final repo = _ref.read(customerRepositoryProvider);
-      await repo.updateCustomer(id, name, phone, address);
+      await repo.updateCustomer(id, name, phone, address, areaId: areaId, roadId: roadId, subRoadId: subRoadId);
       await refresh();
       _ref.invalidate(customerDetailsProvider(id));
     } catch (e, stackTrace) {

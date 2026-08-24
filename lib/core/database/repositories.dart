@@ -75,7 +75,7 @@ abstract class CustomerRepository {
   Future<List<Map<String, dynamic>>> getCustomers({String? search});
   Future<Map<String, dynamic>?> getCustomerById(String id);
   Future<List<Map<String, dynamic>>> getCustomerOrderHistory(String customerId);
-  Future<void> updateCustomer(String id, String name, String phone, String address);
+  Future<void> updateCustomer(String id, String name, String phone, String address, {String? areaId, String? roadId, String? subRoadId});
   Future<void> deleteCustomer(String id);
 }
 
@@ -402,7 +402,7 @@ class SQLiteCustomerRepository implements CustomerRepository {
   }
 
   @override
-  Future<void> updateCustomer(String id, String name, String phone, String address) async {
+  Future<void> updateCustomer(String id, String name, String phone, String address, {String? areaId, String? roadId, String? subRoadId}) async {
     final db = await _dbHelper.database;
     await db.update(
       'customers',
@@ -410,6 +410,9 @@ class SQLiteCustomerRepository implements CustomerRepository {
         'name': name,
         'phone': phone,
         'address': address,
+        'area_id': areaId,
+        'road_id': roadId,
+        'sub_road_id': subRoadId,
       },
       where: 'id = ?',
       whereArgs: [id],
@@ -814,11 +817,14 @@ class SupabaseCustomerRepository implements CustomerRepository {
   }
 
   @override
-  Future<void> updateCustomer(String id, String name, String phone, String address) async {
+  Future<void> updateCustomer(String id, String name, String phone, String address, {String? areaId, String? roadId, String? subRoadId}) async {
     await _client.from('customers').update({
       'name': name,
       'phone': phone,
       'address': address,
+      'area_id': areaId,
+      'road_id': roadId,
+      'sub_road_id': subRoadId,
     }).eq('id', id);
   }
 

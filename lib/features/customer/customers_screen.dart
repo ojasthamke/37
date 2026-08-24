@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'customer_provider.dart';
 import 'customer_details_screen.dart';
 
@@ -31,81 +32,206 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
     final addressController = TextEditingController(text: customer['address'] ?? '');
     final formKey = GlobalKey<FormState>();
 
+    String? selectedAreaId = customer['area_id'];
+    String? selectedRoadId = customer['road_id'];
+    String? selectedSubRoadId = customer['sub_road_id'];
+
+    List<Map<String, dynamic>> areas = [];
+    List<Map<String, dynamic>> roads = [];
+    List<Map<String, dynamic>> subRoads = [];
+    bool dialogLoading = false;
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Edit Customer Details'),
-        content: Form(
-          key: formKey,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextFormField(
-                  controller: nameController,
-                  decoration: const InputDecoration(labelText: 'Name'),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Please enter a name';
-                    }
-                    return null;
-                  },
+      barrierDismissible: false,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            // Fetch initial lists once
+            if (areas.isEmpty && !dialogLoading) {
+              dialogLoading = true;
+              Future.microtask(() async {
+                try {
+                  final res = await Supabase.instance.client.from('areas').select().order('name');
+                  setState(() {
+                    areas = List<Map<String, dynamic>>.from(res);
+                  });
+                  if (selectedAreaId != null) {
+                    final resRoads = await Supabase.instance.client.from('roads').select().eq('area_id', selectedAreaId!).order('name');
+                    setState(() {
+                      roads = List<Map<String, dynamic>>.from(resRoads);
+                    });
+                  }
+                  if (selectedRoadId != null) {
+                    final resSubRoads = await Supabase.instance.client.from('sub_roads').select().eq('road_id', selectedRoadId!).order('name');
+                    setState(() {
+                      subRoads = List<Map<String, dynamic>>.from(resSubRoads);
+                    });
+                  }
+                  setState(() {
+                    dialogLoading = false;
+                  });
+                } catch (_) {
+                  setState(() => dialogLoading = false);
+                }
+              });
+            }
+
+            return AlertDialog(
+              title: const Text('Edit Customer Details'),
+              content: Form(
+                key: formKey,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextFormField(
+                        controller: nameController,
+                        decoration: const InputDecoration(labelText: 'Name'),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Please enter a name';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: phoneController,
+                        decoration: const InputDecoration(labelText: 'Phone'),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Please enter a phone number';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<String>(
+                        value: selectedAreaId,
+                        decoration: const InputDecoration(labelText: 'Select Area'),
+                        items: areas.map((a) => DropdownMenuItem(value: a['id'] as String, child: Text(a['name'] as String))).toList(),
+                        onChanged: (val) async {
+                          if (val != null) {
+                            setState(() {
+                              selectedAreaId = val;
+                              selectedRoadId = null;
+                              selectedSubRoadId = null;
+                              roads = [];
+                              subRoads = [];
+                              dialogLoading = true;
+                            });
+                            try {
+                              final resRoads = await Supabase.instance.client.from('roads').select().eq('area_id', val).order('name');
+                              setState(() {
+                                roads = List<Map<String, dynamic>>.from(resRoads);
+                                dialogLoading = false;
+                              });
+                            } catch (_) {
+                              setState(() => dialogLoading = false);
+                            }
+                          }
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<String>(
+                        value: selectedRoadId,
+                        decoration: const InputDecoration(labelText: 'Select Road'),
+                        disabledHint: const Text('Select Area first'),
+                        items: selectedAreaId == null ? [] : roads.map((r) => DropdownMenuItem(value: r['id'] as String, child: Text(r['name'] as String))).toList(),
+                        onChanged: selectedAreaId == null ? null : (val) async {
+                          if (val != null) {
+                            setState(() {
+                              selectedRoadId = val;
+                              selectedSubRoadId = null;
+                              subRoads = [];
+                              dialogLoading = true;
+                            });
+                            try {
+                              final resSubRoads = await Supabase.instance.client.from('sub_roads').select().eq('road_id', val).order('name');
+                              setState(() {
+                                subRoads = List<Map<String, dynamic>>.from(resSubRoads);
+                                dialogLoading = false;
+                              });
+                            } catch (_) {
+                              setState(() => dialogLoading = false);
+                            }
+                          }
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      if (selectedRoadId != null && subRoads.isNotEmpty) ...[
+                        DropdownButtonFormField<String>(
+                          value: selectedSubRoadId,
+                          decoration: const InputDecoration(labelText: 'Select Sub-Road (Optional)'),
+                          items: subRoads.map((sr) => DropdownMenuItem(value: sr['id'] as String, child: Text(sr['name'] as String))).toList(),
+                          onChanged: (val) {
+                            setState(() {
+                              selectedSubRoadId = val;
+                            });
+                          },
+                        ),
+                        const SizedBox(height: 12),
+                      ],
+                      TextFormField(
+                        controller: addressController,
+                        decoration: const InputDecoration(labelText: 'Address'),
+                        maxLines: 2,
+                      ),
+                      if (dialogLoading) ...[
+                        const SizedBox(height: 12),
+                        const CircularProgressIndicator(),
+                      ]
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: phoneController,
-                  decoration: const InputDecoration(labelText: 'Phone'),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Please enter a phone number';
-                    }
-                    return null;
-                  },
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancel'),
                 ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: addressController,
-                  decoration: const InputDecoration(labelText: 'Address'),
-                  maxLines: 3,
+                ElevatedButton(
+                  onPressed: dialogLoading ? null : () async {
+                    if (formKey.currentState!.validate()) {
+                      if (selectedAreaId == null || selectedRoadId == null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Please select Area and Road')),
+                        );
+                        return;
+                      }
+                      try {
+                        await ref.read(customerListProvider.notifier).updateCustomer(
+                          customer['id'],
+                          nameController.text.trim(),
+                          phoneController.text.trim(),
+                          addressController.text.trim(),
+                          areaId: selectedAreaId,
+                          roadId: selectedRoadId,
+                          subRoadId: selectedSubRoadId,
+                        );
+                        if (context.mounted) {
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Customer details updated successfully!')),
+                          );
+                        }
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Error: $e')),
+                          );
+                        }
+                      }
+                    }
+                  },
+                  child: const Text('Save'),
                 ),
               ],
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              if (formKey.currentState!.validate()) {
-                try {
-                  await ref.read(customerListProvider.notifier).updateCustomer(
-                    customer['id'],
-                    nameController.text.trim(),
-                    phoneController.text.trim(),
-                    addressController.text.trim(),
-                  );
-                  if (context.mounted) {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Customer details updated successfully!')),
-                    );
-                  }
-                } catch (e) {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Error: $e')),
-                    );
-                  }
-                }
-              }
-            },
-            child: const Text('Save'),
-          ),
-        ],
-      ),
+            );
+          },
+        );
+      },
     );
   }
 

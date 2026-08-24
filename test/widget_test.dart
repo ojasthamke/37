@@ -8,7 +8,7 @@ void main() {
     await tester.pumpWidget(const ProviderScope(child: ApliBhajiAdminApp()));
 
     // Verify that login elements are found.
-    expect(find.text('ApliBhaji Admin'), findsOneWidget);
+    expect(find.text('Orderkart admin'), findsOneWidget);
     expect(find.text('Email Address'), findsOneWidget);
     expect(find.text('Password'), findsOneWidget);
     expect(find.text('LOGIN'), findsOneWidget);

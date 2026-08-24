@@ -35,8 +35,9 @@ class DatabaseHelper {
 
     return openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: _onCreate,
+      onUpgrade: _onUpgrade,
     );
   }
 
@@ -78,6 +79,9 @@ class DatabaseHelper {
         address TEXT,
         password TEXT,
         is_logged_in INTEGER DEFAULT 0,
+        area_id TEXT,
+        road_id TEXT,
+        sub_road_id TEXT,
         created_at TEXT
       )
     ''');
@@ -93,6 +97,15 @@ class DatabaseHelper {
         order_date TEXT,
         status TEXT,
         total_amount REAL,
+        delivery_date TEXT,
+        area_id TEXT,
+        area_name TEXT,
+        road_id TEXT,
+        road_name TEXT,
+        sub_road_id TEXT,
+        sub_road_name TEXT,
+        customer_name TEXT,
+        offline_order_no TEXT,
         FOREIGN KEY (customer_id) REFERENCES customers (id) ON DELETE SET NULL
       )
     ''');
@@ -126,6 +139,26 @@ class DatabaseHelper {
     await db.insert('settings', {'key': 'store_address', 'value': 'Main Bazar, Pune, Maharashtra'});
     await db.insert('settings', {'key': 'delivery_charge', 'value': '30'});
     await db.insert('settings', {'key': 'free_delivery_threshold', 'value': '300'});
+  }
+
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      // Add new route fields to customers
+      try { await db.execute("ALTER TABLE customers ADD COLUMN area_id TEXT"); } catch (_) {}
+      try { await db.execute("ALTER TABLE customers ADD COLUMN road_id TEXT"); } catch (_) {}
+      try { await db.execute("ALTER TABLE customers ADD COLUMN sub_road_id TEXT"); } catch (_) {}
+
+      // Add new route and snapshot fields to orders
+      try { await db.execute("ALTER TABLE orders ADD COLUMN delivery_date TEXT"); } catch (_) {}
+      try { await db.execute("ALTER TABLE orders ADD COLUMN area_id TEXT"); } catch (_) {}
+      try { await db.execute("ALTER TABLE orders ADD COLUMN area_name TEXT"); } catch (_) {}
+      try { await db.execute("ALTER TABLE orders ADD COLUMN road_id TEXT"); } catch (_) {}
+      try { await db.execute("ALTER TABLE orders ADD COLUMN road_name TEXT"); } catch (_) {}
+      try { await db.execute("ALTER TABLE orders ADD COLUMN sub_road_id TEXT"); } catch (_) {}
+      try { await db.execute("ALTER TABLE orders ADD COLUMN sub_road_name TEXT"); } catch (_) {}
+      try { await db.execute("ALTER TABLE orders ADD COLUMN customer_name TEXT"); } catch (_) {}
+      try { await db.execute("ALTER TABLE orders ADD COLUMN offline_order_no TEXT"); } catch (_) {}
+    }
   }
 
   Future<void> clearDatabase() async {

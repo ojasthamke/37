@@ -9,6 +9,7 @@ import '../customer/customers_screen.dart';
 import '../order/orders_screen.dart';
 import '../notification/notifications_screen.dart';
 import '../settings/settings_screen.dart';
+import '../area/areas_screen.dart';
 
 class MainNavigationShell extends ConsumerStatefulWidget {
   const MainNavigationShell({super.key});
@@ -25,6 +26,7 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
     CategoriesScreen(),
     ProductsScreen(),
     CustomersScreen(),
+    AreasScreen(),
     OrdersScreen(),
     NotificationsScreen(),
     SettingsScreen(),
@@ -35,6 +37,7 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
     'Categories',
     'Products',
     'Customers',
+    'Areas',
     'Orders',
     'Notifications',
     'Settings',
@@ -140,6 +143,11 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
                   label: Text('Customers'),
                 ),
                 NavigationRailDestination(
+                  icon: Icon(Icons.map_outlined),
+                  selectedIcon: Icon(Icons.map_rounded),
+                  label: Text('Areas'),
+                ),
+                NavigationRailDestination(
                   icon: Icon(Icons.receipt_long_outlined),
                   selectedIcon: Icon(Icons.receipt_long_rounded),
                   label: Text('Orders'),
@@ -194,6 +202,11 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
                   icon: Icon(Icons.people_outline_rounded),
                   activeIcon: Icon(Icons.people_rounded),
                   label: 'Customers',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.map_outlined),
+                  activeIcon: Icon(Icons.map_rounded),
+                  label: 'Areas',
                 ),
                 BottomNavigationBarItem(
                   icon: Icon(Icons.receipt_long_outlined),
