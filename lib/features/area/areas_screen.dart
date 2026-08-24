@@ -11,18 +11,20 @@ class AreasScreen extends StatefulWidget {
 
 class _AreasScreenState extends State<AreasScreen> {
   final _client = Supabase.instance.client;
+  final _searchController = TextEditingController();
+  
   List<Map<String, dynamic>> _areas = [];
+  List<Map<String, dynamic>> _allRoads = [];
+  List<Map<String, dynamic>> _allSubRoads = [];
+  List<Map<String, dynamic>> _allCustomers = [];
+  
   bool _isLoading = false;
+  String _searchQuery = '';
 
-  // Selected state for navigation/filtering
-  String? _selectedAreaId;
-  String? _selectedRoadId;
-
-  List<Map<String, dynamic>> _roads = [];
-  List<Map<String, dynamic>> _subRoads = [];
-
-  // Customer counts cache
-  final Map<String, int> _customerCounts = {};
+  // Hierarchical selection sets
+  final Set<String> _selectedAreaIds = {};
+  final Set<String> _selectedRoadIds = {};
+  final Set<String> _selectedSubRoadIds = {};
 
   final List<String> _weekdays = [
     'Monday',
@@ -37,26 +39,48 @@ class _AreasScreenState extends State<AreasScreen> {
   @override
   void initState() {
     super.initState();
-    _fetchAreas();
+    _fetchAllData();
   }
 
-  Future<void> _fetchAreas() async {
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _fetchAllData() async {
     setState(() {
       _isLoading = true;
     });
     try {
-      final List<dynamic> res = await _client
+      final List<dynamic> areasRes = await _client
           .from('areas')
           .select()
           .order('name', ascending: true);
+          
+      final List<dynamic> roadsRes = await _client
+          .from('roads')
+          .select()
+          .order('name', ascending: true);
+          
+      final List<dynamic> subRoadsRes = await _client
+          .from('sub_roads')
+          .select()
+          .order('name', ascending: true);
+          
+      final List<dynamic> customersRes = await _client
+          .from('customers')
+          .select('id, name, customer_code, phone, address, area_id, road_id, sub_road_id')
+          .order('name');
+
       setState(() {
-        _areas = List<Map<String, dynamic>>.from(res);
+        _areas = List<Map<String, dynamic>>.from(areasRes);
+        _allRoads = List<Map<String, dynamic>>.from(roadsRes);
+        _allSubRoads = List<Map<String, dynamic>>.from(subRoadsRes);
+        _allCustomers = List<Map<String, dynamic>>.from(customersRes);
       });
-      for (final area in _areas) {
-        _fetchCustomerCount('area', area['id'] as String);
-      }
     } catch (e) {
-      _showError('Failed to load areas: $e');
+      _showError('Failed to load route hierarchy data: $e');
     } finally {
       setState(() {
         _isLoading = false;
@@ -64,63 +88,127 @@ class _AreasScreenState extends State<AreasScreen> {
     }
   }
 
-  Future<void> _fetchRoads(String areaId) async {
-    try {
-      final List<dynamic> res = await _client
-          .from('roads')
-          .select()
-          .eq('area_id', areaId)
-          .order('name', ascending: true);
-      setState(() {
-        _roads = List<Map<String, dynamic>>.from(res);
-        _subRoads = [];
-        _selectedRoadId = null;
-      });
-      for (final road in _roads) {
-        _fetchCustomerCount('road', road['id'] as String);
-      }
-    } catch (e) {
-      _showError('Failed to load roads: $e');
-    }
-  }
-
-  Future<void> _fetchSubRoads(String roadId) async {
-    try {
-      final List<dynamic> res = await _client
-          .from('sub_roads')
-          .select()
-          .eq('road_id', roadId)
-          .order('name', ascending: true);
-      setState(() {
-        _subRoads = List<Map<String, dynamic>>.from(res);
-      });
-      for (final subRoad in _subRoads) {
-        _fetchCustomerCount('sub_road', subRoad['id'] as String);
-      }
-    } catch (e) {
-      _showError('Failed to load sub-roads: $e');
-    }
-  }
-
-  Future<void> _fetchCustomerCount(String type, String id) async {
-    try {
-      final List<dynamic> response = await _client
-          .from('customers')
-          .select('id')
-          .eq('${type}_id', id);
-      
-      final count = response.length;
-      setState(() {
-        _customerCounts['$type:$id'] = count;
-      });
-    } catch (_) {}
-  }
-
   void _showError(String message) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message), backgroundColor: Colors.red),
     );
+  }
+
+  // ==========================================
+  // HIERARCHICAL SELECTION TOGGLES
+  // ==========================================
+
+  void _toggleAreaSelection(String areaId, bool selected) {
+    setState(() {
+      if (selected) {
+        _selectedAreaIds.add(areaId);
+        // Select all child roads
+        final childRoads = _allRoads.where((r) => r['area_id'] == areaId);
+        for (final r in childRoads) {
+          _selectedRoadIds.add(r['id'] as String);
+          final childSubRoads = _allSubRoads.where((sr) => sr['road_id'] == r['id']);
+          for (final sr in childSubRoads) {
+            _selectedSubRoadIds.add(sr['id'] as String);
+          }
+        }
+      } else {
+        _selectedAreaIds.remove(areaId);
+        // Unselect all child roads
+        final childRoads = _allRoads.where((r) => r['area_id'] == areaId);
+        for (final r in childRoads) {
+          _selectedRoadIds.remove(r['id'] as String);
+          final childSubRoads = _allSubRoads.where((sr) => sr['road_id'] == r['id']);
+          for (final sr in childSubRoads) {
+            _selectedSubRoadIds.remove(sr['id'] as String);
+          }
+        }
+      }
+    });
+  }
+
+  void _toggleRoadSelection(String roadId, bool selected) {
+    setState(() {
+      if (selected) {
+        _selectedRoadIds.add(roadId);
+        // Select all child sub-roads
+        final childSubRoads = _allSubRoads.where((sr) => sr['road_id'] == roadId);
+        for (final sr in childSubRoads) {
+          _selectedSubRoadIds.add(sr['id'] as String);
+        }
+      } else {
+        _selectedRoadIds.remove(roadId);
+        // Unselect all child sub-roads
+        final childSubRoads = _allSubRoads.where((sr) => sr['road_id'] == roadId);
+        for (final sr in childSubRoads) {
+          _selectedSubRoadIds.remove(sr['id'] as String);
+        }
+      }
+    });
+  }
+
+  void _toggleSubRoadSelection(String subRoadId, bool selected) {
+    setState(() {
+      if (selected) {
+        _selectedSubRoadIds.add(subRoadId);
+      } else {
+        _selectedSubRoadIds.remove(subRoadId);
+      }
+    });
+  }
+
+  List<Map<String, dynamic>> _getSelectedCustomers() {
+    return _allCustomers.where((c) {
+      final areaId = c['area_id'];
+      final roadId = c['road_id'];
+      final subRoadId = c['sub_road_id'];
+      return (subRoadId != null && _selectedSubRoadIds.contains(subRoadId)) ||
+             (roadId != null && _selectedRoadIds.contains(roadId)) ||
+             (areaId != null && _selectedAreaIds.contains(areaId));
+    }).toList();
+  }
+
+  // ==========================================
+  // SEARCH FILTER HELPER FUNCTIONS
+  // ==========================================
+
+  bool _matchesSearch(String text, String query) {
+    return text.toLowerCase().contains(query.toLowerCase());
+  }
+
+  bool _isCustomerVisible(Map<String, dynamic> c, String query) {
+    if (query.isEmpty) return true;
+    return _matchesSearch(c['name'] ?? '', query) ||
+           _matchesSearch(c['customer_code'] ?? '', query) ||
+           _matchesSearch(c['phone'] ?? '', query) ||
+           _matchesSearch(c['address'] ?? '', query);
+  }
+
+  bool _isSubRoadVisible(Map<String, dynamic> sr, String query) {
+    if (query.isEmpty) return true;
+    if (_matchesSearch(sr['name'] ?? '', query) || _matchesSearch(sr['subroad_code'] ?? '', query)) return true;
+    
+    // Check if any child customer matches search query
+    final childCustomers = _allCustomers.where((c) => c['sub_road_id'] == sr['id']);
+    return childCustomers.any((c) => _isCustomerVisible(c, query));
+  }
+
+  bool _isRoadVisible(Map<String, dynamic> r, String query) {
+    if (query.isEmpty) return true;
+    if (_matchesSearch(r['name'] ?? '', query) || _matchesSearch(r['road_code'] ?? '', query)) return true;
+    
+    // Check if any child sub-roads match search query
+    final childSubRoads = _allSubRoads.where((sr) => sr['road_id'] == r['id']);
+    return childSubRoads.any((sr) => _isSubRoadVisible(sr, query));
+  }
+
+  bool _isAreaVisible(Map<String, dynamic> a, String query) {
+    if (query.isEmpty) return true;
+    if (_matchesSearch(a['name'] ?? '', query) || _matchesSearch(a['area_code'] ?? '', query)) return true;
+    
+    // Check if any child roads match search query
+    final childRoads = _allRoads.where((r) => r['area_id'] == a['id']);
+    return childRoads.any((r) => _isRoadVisible(r, query));
   }
 
   // ==========================================
@@ -191,7 +279,10 @@ class _AreasScreenState extends State<AreasScreen> {
                     
                     try {
                       if (area == null) {
+                        final nextIndex = _areas.length + 1;
+                        final areaCode = "AREA-${nextIndex.toString().padLeft(6, '0')}";
                         await _client.from('areas').insert({
+                          'area_code': areaCode,
                           'name': nameController.text.trim(),
                           'delivery_schedule': selectedDays,
                         });
@@ -201,7 +292,7 @@ class _AreasScreenState extends State<AreasScreen> {
                           'delivery_schedule': selectedDays,
                         }).eq('id', area['id']);
                       }
-                      _fetchAreas();
+                      _fetchAllData();
                     } catch (e) {
                       _showError('Failed to save area: $e');
                     }
@@ -237,15 +328,7 @@ class _AreasScreenState extends State<AreasScreen> {
 
     try {
       await _client.from('areas').delete().eq('id', id);
-      _fetchAreas();
-      if (_selectedAreaId == id) {
-        setState(() {
-          _selectedAreaId = null;
-          _roads = [];
-          _subRoads = [];
-          _selectedRoadId = null;
-        });
-      }
+      _fetchAllData();
     } catch (e) {
       _showError('Failed to delete area: $e');
     }
@@ -255,10 +338,8 @@ class _AreasScreenState extends State<AreasScreen> {
   // ROAD CRUD
   // ==========================================
 
-  void _showRoadDialog({Map<String, dynamic>? road}) {
-    if (_selectedAreaId == null) return;
+  void _showRoadDialog({Map<String, dynamic>? road, required String areaId}) {
     final nameController = TextEditingController(text: road?['name'] ?? '');
-    
     bool hasOverride = road?['delivery_schedule'] != null;
     List<String> selectedDays = [];
     if (road != null && road['delivery_schedule'] != null) {
@@ -335,8 +416,11 @@ class _AreasScreenState extends State<AreasScreen> {
                     try {
                       final schedule = hasOverride ? selectedDays : null;
                       if (road == null) {
+                        final nextIndex = _allRoads.length + 1;
+                        final roadCode = "ROAD-${nextIndex.toString().padLeft(6, '0')}";
                         await _client.from('roads').insert({
-                          'area_id': _selectedAreaId,
+                          'area_id': areaId,
+                          'road_code': roadCode,
                           'name': nameController.text.trim(),
                           'delivery_schedule': schedule,
                         });
@@ -346,7 +430,7 @@ class _AreasScreenState extends State<AreasScreen> {
                           'delivery_schedule': schedule,
                         }).eq('id', road['id']);
                       }
-                      _fetchRoads(_selectedAreaId!);
+                      _fetchAllData();
                     } catch (e) {
                       _showError('Failed to save road: $e');
                     }
@@ -382,13 +466,7 @@ class _AreasScreenState extends State<AreasScreen> {
 
     try {
       await _client.from('roads').delete().eq('id', id);
-      _fetchRoads(_selectedAreaId!);
-      if (_selectedRoadId == id) {
-        setState(() {
-          _selectedRoadId = null;
-          _subRoads = [];
-        });
-      }
+      _fetchAllData();
     } catch (e) {
       _showError('Failed to delete road: $e');
     }
@@ -398,10 +476,8 @@ class _AreasScreenState extends State<AreasScreen> {
   // SUB-ROAD CRUD
   // ==========================================
 
-  void _showSubRoadDialog({Map<String, dynamic>? subRoad}) {
-    if (_selectedRoadId == null) return;
+  void _showSubRoadDialog({Map<String, dynamic>? subRoad, required String roadId}) {
     final nameController = TextEditingController(text: subRoad?['name'] ?? '');
-    
     bool hasOverride = subRoad?['delivery_schedule'] != null;
     List<String> selectedDays = [];
     if (subRoad != null && subRoad['delivery_schedule'] != null) {
@@ -478,8 +554,11 @@ class _AreasScreenState extends State<AreasScreen> {
                     try {
                       final schedule = hasOverride ? selectedDays : null;
                       if (subRoad == null) {
+                        final nextIndex = _allSubRoads.length + 1;
+                        final subRoadCode = "SUBROAD-${nextIndex.toString().padLeft(6, '0')}";
                         await _client.from('sub_roads').insert({
-                          'road_id': _selectedRoadId,
+                          'road_id': roadId,
+                          'subroad_code': subRoadCode,
                           'name': nameController.text.trim(),
                           'delivery_schedule': schedule,
                         });
@@ -489,7 +568,7 @@ class _AreasScreenState extends State<AreasScreen> {
                           'delivery_schedule': schedule,
                         }).eq('id', subRoad['id']);
                       }
-                      _fetchSubRoads(_selectedRoadId!);
+                      _fetchAllData();
                     } catch (e) {
                       _showError('Failed to save sub-road: $e');
                     }
@@ -525,85 +604,9 @@ class _AreasScreenState extends State<AreasScreen> {
 
     try {
       await _client.from('sub_roads').delete().eq('id', id);
-      _fetchSubRoads(_selectedRoadId!);
+      _fetchAllData();
     } catch (e) {
       _showError('Failed to delete sub-road: $e');
-    }
-  }
-
-  // ==========================================
-  // CUSTOMER ROUTE LIST VIEW
-  // ==========================================
-
-  void _showCustomerListDialog(String type, String id, String name) async {
-    showDialog(
-      context: context,
-      builder: (context) => const AlertDialog(
-        content: Row(
-          children: [
-            CircularProgressIndicator(),
-            SizedBox(width: 16),
-            Text('Loading customers...'),
-          ],
-        ),
-      ),
-    );
-
-    try {
-      final List<dynamic> res = await _client
-          .from('customers')
-          .select('name, customer_code, phone, address')
-          .eq('${type}_id', id)
-          .order('name');
-      
-      if (!mounted) return;
-      Navigator.pop(context); // Close loading dialog
-
-      final List<Map<String, dynamic>> customers = List<Map<String, dynamic>>.from(res);
-
-      showDialog(
-        context: context,
-        builder: (context) {
-          return AlertDialog(
-            title: Text('Customers on $name (${customers.length})'),
-            content: SizedBox(
-              width: 500,
-              height: 400,
-              child: customers.isEmpty
-                  ? const Center(child: Text('No customers registered on this route.'))
-                  : ListView.separated(
-                      itemCount: customers.length,
-                      separatorBuilder: (context, idx) => const Divider(),
-                      itemBuilder: (context, idx) {
-                        final c = customers[idx];
-                        final codeStr = c['customer_code'] ?? 'No Code';
-                        return ListTile(
-                          title: Text(c['name'] ?? 'Unnamed Customer', style: const TextStyle(fontWeight: FontWeight.bold)),
-                          subtitle: Text('Address: ${c['address'] ?? 'N/A'}'),
-                          trailing: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: Colors.amber[100],
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(codeStr, style: TextStyle(fontWeight: FontWeight.bold, color: Colors.amber[900], fontSize: 11)),
-                          ),
-                        );
-                      },
-                    ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Close'),
-              ),
-            ],
-          );
-        },
-      );
-    } catch (e) {
-      if (mounted) Navigator.pop(context); // Close loading
-      _showError('Failed to fetch customers: $e');
     }
   }
 
@@ -614,240 +617,327 @@ class _AreasScreenState extends State<AreasScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isWide = MediaQuery.of(context).size.width >= 1000;
+    final filteredAreas = _areas.where((a) => _isAreaVisible(a, _searchQuery)).toList();
+    final selectedCustomers = _getSelectedCustomers();
+    
+    final Map<String, int> areaBreakdown = {};
+    final Map<String, int> roadBreakdown = {};
+    
+    for (final c in selectedCustomers) {
+      final areaId = c['area_id'] as String?;
+      final roadId = c['road_id'] as String?;
+      if (areaId != null && _selectedAreaIds.contains(areaId)) {
+        areaBreakdown[areaId] = (areaBreakdown[areaId] ?? 0) + 1;
+      }
+      if (roadId != null && _selectedRoadIds.contains(roadId)) {
+        roadBreakdown[roadId] = (roadBreakdown[roadId] ?? 0) + 1;
+      }
+    }
 
-    Widget areasList = Card(
-      child: Column(
-        children: [
-          AppBar(
-            title: const Text('Areas', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            automaticallyImplyLeading: false,
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.add),
-                tooltip: 'Add Area',
-                onPressed: () => _showAreaDialog(),
-              )
-            ],
-          ),
-          const Divider(height: 1),
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _areas.isEmpty
-                    ? const Center(child: Text('No Areas configured.'))
-                    : ListView.builder(
-                        itemCount: _areas.length,
-                        itemBuilder: (context, idx) {
-                          final area = _areas[idx];
-                          final isSelected = _selectedAreaId == area['id'];
-                          final count = _customerCounts['area:${area['id']}'] ?? 0;
-                          final schedule = (area['delivery_schedule'] as List?)?.join(', ') ?? 'None';
-
-                          return ListTile(
-                            selected: isSelected,
-                            selectedTileColor: theme.colorScheme.primary.withOpacity(0.08),
-                            title: Text('${area['name']} (${area['id']})', style: const TextStyle(fontWeight: FontWeight.bold)),
-                            subtitle: Text('Schedule: $schedule'),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                TextButton(
-                                  onPressed: () => _showCustomerListDialog('area', area['id'] as String, area['name'] as String),
-                                  child: Text('$count Customers', style: const TextStyle(fontSize: 12)),
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.edit_outlined, size: 20),
-                                  onPressed: () => _showAreaDialog(area: area),
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.delete_outline, size: 20, color: Colors.red),
-                                  onPressed: () => _deleteArea(area['id'] as String),
-                                ),
-                              ],
-                            ),
-                            onTap: () {
-                              setState(() {
-                                _selectedAreaId = area['id'] as String;
-                              });
-                              _fetchRoads(area['id'] as String);
-                            },
-                          );
-                        },
-                      ),
-          ),
-        ],
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Master Delivery Routes'),
+        centerTitle: true,
       ),
-    );
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _searchController,
+                          decoration: InputDecoration(
+                            hintText: 'Search areas, roads, sub-roads or customers...',
+                            prefixIcon: const Icon(Icons.search_rounded),
+                            suffixIcon: _searchController.text.isNotEmpty
+                                ? IconButton(
+                                    icon: const Icon(Icons.clear_rounded),
+                                    onPressed: () {
+                                      _searchController.clear();
+                                      setState(() {
+                                        _searchQuery = '';
+                                      });
+                                    },
+                                  )
+                                : null,
+                          ),
+                          onChanged: (val) {
+                            setState(() {
+                              _searchQuery = val.trim();
+                            });
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      ElevatedButton.icon(
+                        onPressed: () => _showAreaDialog(),
+                        icon: const Icon(Icons.add),
+                        label: const Text('Add Area'),
+                      ),
+                    ],
+                  ),
+                ),
 
-    Widget roadsList = Card(
-      child: Column(
-        children: [
-          AppBar(
-            title: const Text('Roads / Routes', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            automaticallyImplyLeading: false,
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            actions: [
-              if (_selectedAreaId != null)
-                IconButton(
-                  icon: const Icon(Icons.add),
-                  tooltip: 'Add Road',
-                  onPressed: () => _showRoadDialog(),
-                )
-            ],
-          ),
-          const Divider(height: 1),
-          Expanded(
-            child: _selectedAreaId == null
-                ? const Center(child: Text('Select an Area to view Roads.'))
-                : _roads.isEmpty
-                    ? const Center(child: Text('No Roads in this Area.'))
-                    : ListView.builder(
-                        itemCount: _roads.length,
-                        itemBuilder: (context, idx) {
-                          final road = _roads[idx];
-                          final isSelected = _selectedRoadId == road['id'];
-                          final count = _customerCounts['road:${road['id']}'] ?? 0;
-                          final schedule = road['delivery_schedule'] == null
+                if (selectedCustomers.isNotEmpty) ...[
+                  Container(
+                    width: double.infinity,
+                    margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                    padding: const EdgeInsets.all(16.0),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primaryContainer.withOpacity(0.4),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: theme.colorScheme.primary.withOpacity(0.1)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Selected: ${selectedCustomers.length} Customers',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            color: theme.colorScheme.primary,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        const Text('Breakdown:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                        const SizedBox(height: 4),
+                        Wrap(
+                          spacing: 12,
+                          runSpacing: 4,
+                          children: [
+                            ...areaBreakdown.entries.map((e) {
+                              final areaName = _areas.firstWhere((a) => a['id'] == e.key, orElse: () => {'name': 'Unknown'})['name'];
+                              return Chip(
+                                label: Text('$areaName — ${e.value}'),
+                              );
+                            }),
+                            ...roadBreakdown.entries.map((e) {
+                              final roadName = _allRoads.firstWhere((r) => r['id'] == e.key, orElse: () => {'name': 'Unknown'})['name'];
+                              return Chip(
+                                label: Text('$roadName — ${e.value}'),
+                              );
+                            }),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: filteredAreas.length,
+                    itemBuilder: (context, idx) {
+                      final area = filteredAreas[idx];
+                      final areaId = area['id'] as String;
+                      final areaName = area['name'] as String;
+                      final areaCode = area['area_code'] as String? ?? '';
+                      final deliveryDays = (area['delivery_schedule'] as List?)?.join(', ') ?? 'None';
+
+                      final areaRoads = _allRoads
+                          .where((r) => r['area_id'] == areaId && _isRoadVisible(r, _searchQuery))
+                          .toList();
+
+                      final areaCustCount = _allCustomers.where((c) => c['area_id'] == areaId).length;
+                      final isAreaChecked = _selectedAreaIds.contains(areaId);
+
+                      return ExpansionTile(
+                        key: PageStorageKey<String>('area:$areaId'),
+                        leading: Checkbox(
+                          value: isAreaChecked,
+                          onChanged: (val) {
+                            if (val != null) {
+                              _toggleAreaSelection(areaId, val);
+                            }
+                          },
+                        ),
+                        title: Row(
+                          children: [
+                            Text(
+                              areaName,
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              '($areaCode)',
+                              style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                            ),
+                          ],
+                        ),
+                        subtitle: Text('Schedule: $deliveryDays • $areaCustCount Customers'),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.add_road_rounded, size: 20),
+                              tooltip: 'Add Road',
+                              onPressed: () => _showRoadDialog(areaId: areaId),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.edit_outlined, size: 20),
+                              tooltip: 'Edit Area',
+                              onPressed: () => _showAreaDialog(area: area),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.delete_outline, size: 20, color: Colors.red),
+                              tooltip: 'Delete Area',
+                              onPressed: () => _deleteArea(areaId),
+                            ),
+                          ],
+                        ),
+                        children: areaRoads.map((road) {
+                          final roadId = road['id'] as String;
+                          final roadName = road['name'] as String;
+                          final roadCode = road['road_code'] as String? ?? '';
+                          final roadSchedule = road['delivery_schedule'] == null
                               ? 'Inherited'
                               : (road['delivery_schedule'] as List).join(', ');
 
-                          return ListTile(
-                            selected: isSelected,
-                            selectedTileColor: theme.colorScheme.primary.withOpacity(0.08),
-                            title: Text('${road['name']} (${road['id']})', style: const TextStyle(fontWeight: FontWeight.bold)),
-                            subtitle: Text('Schedule: $schedule'),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                TextButton(
-                                  onPressed: () => _showCustomerListDialog('road', road['id'] as String, road['name'] as String),
-                                  child: Text('$count Customers', style: const TextStyle(fontSize: 12)),
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.edit_outlined, size: 20),
-                                  onPressed: () => _showRoadDialog(road: road),
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.delete_outline, size: 20, color: Colors.red),
-                                  onPressed: () => _deleteRoad(road['id'] as String),
-                                ),
-                              ],
+                          final roadSubRoads = _allSubRoads
+                              .where((sr) => sr['road_id'] == roadId && _isSubRoadVisible(sr, _searchQuery))
+                              .toList();
+
+                          final roadCustCount = _allCustomers.where((c) => c['road_id'] == roadId).length;
+                          final isRoadChecked = _selectedRoadIds.contains(roadId);
+
+                          return Padding(
+                            padding: const EdgeInsets.only(left: 16.0),
+                            child: ExpansionTile(
+                              key: PageStorageKey<String>('road:$roadId'),
+                              leading: Checkbox(
+                                value: isRoadChecked,
+                                onChanged: (val) {
+                                  if (val != null) {
+                                    _toggleRoadSelection(roadId, val);
+                                  }
+                                },
+                              ),
+                              title: Row(
+                                children: [
+                                  Text(
+                                    roadName,
+                                    style: const TextStyle(fontWeight: FontWeight.bold),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    '($roadCode)',
+                                    style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                                  ),
+                                ],
+                              ),
+                              subtitle: Text('Schedule: $roadSchedule • $roadCustCount Customers'),
+                              trailing: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  IconButton(
+                                    icon: const Icon(Icons.add_location_outlined, size: 20),
+                                    tooltip: 'Add Sub-Road',
+                                    onPressed: () => _showSubRoadDialog(roadId: roadId),
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.edit_outlined, size: 20),
+                                    tooltip: 'Edit Road',
+                                    onPressed: () => _showRoadDialog(road: road, areaId: areaId),
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.delete_outline, size: 20, color: Colors.red),
+                                    tooltip: 'Delete Road',
+                                    onPressed: () => _deleteRoad(roadId),
+                                  ),
+                                ],
+                              ),
+                              children: roadSubRoads.map((subRoad) {
+                                final subRoadId = subRoad['id'] as String;
+                                final subRoadName = subRoad['name'] as String;
+                                final subRoadCode = subRoad['subroad_code'] as String? ?? '';
+                                final subRoadSchedule = subRoad['delivery_schedule'] == null
+                                    ? 'Inherited'
+                                    : (subRoad['delivery_schedule'] as List).join(', ');
+
+                                final subRoadCustomers = _allCustomers
+                                    .where((c) => c['sub_road_id'] == subRoadId && _isCustomerVisible(c, _searchQuery))
+                                    .toList();
+
+                                final isSubRoadChecked = _selectedSubRoadIds.contains(subRoadId);
+
+                                return Padding(
+                                  padding: const EdgeInsets.only(left: 32.0),
+                                  child: ExpansionTile(
+                                    key: PageStorageKey<String>('subroad:$subRoadId'),
+                                    leading: Checkbox(
+                                      value: isSubRoadChecked,
+                                      onChanged: (val) {
+                                        if (val != null) {
+                                          _toggleSubRoadSelection(subRoadId, val);
+                                        }
+                                      },
+                                    ),
+                                    title: Row(
+                                      children: [
+                                        Text(
+                                          subRoadName,
+                                          style: const TextStyle(fontWeight: FontWeight.w600),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          '($subRoadCode)',
+                                          style: TextStyle(color: Colors.grey[600], fontSize: 11),
+                                        ),
+                                      ],
+                                    ),
+                                    subtitle: Text('Schedule: $subRoadSchedule • ${subRoadCustomers.length} Customers'),
+                                    trailing: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        IconButton(
+                                          icon: const Icon(Icons.edit_outlined, size: 20),
+                                          tooltip: 'Edit Sub-Road',
+                                          onPressed: () => _showSubRoadDialog(subRoad: subRoad, roadId: roadId),
+                                        ),
+                                        IconButton(
+                                          icon: const Icon(Icons.delete_outline, size: 20, color: Colors.red),
+                                          tooltip: 'Delete Sub-Road',
+                                          onPressed: () => _deleteSubRoad(subRoadId),
+                                        ),
+                                      ],
+                                    ),
+                                    children: subRoadCustomers.map((c) {
+                                      final codeStr = c['customer_code'] ?? 'No Code';
+                                      return Padding(
+                                        padding: const EdgeInsets.only(left: 48.0, right: 16.0),
+                                        child: ListTile(
+                                          title: Text(
+                                            c['name'] ?? 'Unnamed',
+                                            style: const TextStyle(fontWeight: FontWeight.w500),
+                                          ),
+                                          subtitle: Text('Phone: ${c['phone']} • Address: ${c['address']}'),
+                                          trailing: Chip(
+                                            label: Text(
+                                              codeStr,
+                                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
+                                            ),
+                                            backgroundColor: Colors.amber[100],
+                                          ),
+                                        ),
+                                      );
+                                    }).toList(),
+                                  ),
+                                );
+                              }).toList(),
                             ),
-                            onTap: () {
-                              setState(() {
-                                _selectedRoadId = road['id'] as String;
-                              });
-                              _fetchSubRoads(road['id'] as String);
-                            },
                           );
-                        },
-                      ),
-          ),
-        ],
-      ),
-    );
-
-    Widget subRoadsList = Card(
-      child: Column(
-        children: [
-          AppBar(
-            title: const Text('Sub-Roads / Lanes', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            automaticallyImplyLeading: false,
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            actions: [
-              if (_selectedRoadId != null)
-                IconButton(
-                  icon: const Icon(Icons.add),
-                  tooltip: 'Add Sub-Road',
-                  onPressed: () => _showSubRoadDialog(),
-                )
-            ],
-          ),
-          const Divider(height: 1),
-          Expanded(
-            child: _selectedRoadId == null
-                ? const Center(child: Text('Select a Road to view Sub-Roads.'))
-                : _subRoads.isEmpty
-                    ? const Center(child: Text('No Sub-Roads / Lanes on this Road.'))
-                    : ListView.builder(
-                        itemCount: _subRoads.length,
-                        itemBuilder: (context, idx) {
-                          final subRoad = _subRoads[idx];
-                          final count = _customerCounts['sub_road:${subRoad['id']}'] ?? 0;
-                          final schedule = subRoad['delivery_schedule'] == null
-                              ? 'Inherited'
-                              : (subRoad['delivery_schedule'] as List).join(', ');
-
-                          return ListTile(
-                            title: Text('${subRoad['name']} (${subRoad['id']})', style: const TextStyle(fontWeight: FontWeight.bold)),
-                            subtitle: Text('Schedule: $schedule'),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                TextButton(
-                                  onPressed: () => _showCustomerListDialog('sub_road', subRoad['id'] as String, subRoad['name'] as String),
-                                  child: Text('$count Customers', style: const TextStyle(fontSize: 12)),
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.edit_outlined, size: 20),
-                                  onPressed: () => _showSubRoadDialog(subRoad: subRoad),
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.delete_outline, size: 20, color: Colors.red),
-                                  onPressed: () => _deleteSubRoad(subRoad['id'] as String),
-                                ),
-                              ],
-                            ),
-                          );
-                        },
-                      ),
-          ),
-        ],
-      ),
-    );
-
-    if (isWide) {
-      return Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Row(
-          children: [
-            Expanded(child: areasList),
-            const SizedBox(width: 12),
-            Expanded(child: roadsList),
-            const SizedBox(width: 12),
-            Expanded(child: subRoadsList),
-          ],
-        ),
-      );
-    } else {
-      // Split layout for mobile/smaller screens with TabBar/Swiper or simple back stack
-      return DefaultTabController(
-        length: 3,
-        child: Scaffold(
-          appBar: const TabBar(
-            tabs: [
-              Tab(text: 'Areas'),
-              Tab(text: 'Roads'),
-              Tab(text: 'Sub-Roads'),
-            ],
-          ),
-          body: Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: TabBarView(
-              children: [
-                areasList,
-                roadsList,
-                subRoadsList,
+                        }).toList(),
+                      );
+                    },
+                  ),
+                ),
               ],
             ),
-          ),
-        ),
-      );
-    }
+    );
   }
 }
