@@ -152,7 +152,7 @@ class CustomerDetailsScreen extends ConsumerWidget {
                             separatorBuilder: (context, index) => const Divider(),
                             itemBuilder: (context, index) {
                               final order = history[index];
-                              final orderDate = DateTime.tryParse(order['order_date'] ?? '') ?? DateTime.now();
+                              final orderDate = (DateTime.tryParse(order['order_date'] ?? '') ?? DateTime.now()).toLocal();
                               final formattedOrderDate = DateFormat('dd MMM yyyy, hh:mm a').format(orderDate);
                               final status = order['status'] ?? 'Pending';
                               

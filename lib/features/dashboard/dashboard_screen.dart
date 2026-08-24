@@ -56,7 +56,11 @@ final dashboardStatsProvider = FutureProvider<DashboardStats>((ref) async {
   final todayStr = DateTime.now().toIso8601String().substring(0, 10);
   final todaysOrders = ordersList.where((o) {
     final dateStr = o['order_date']?.toString();
-    return dateStr != null && dateStr.startsWith(todayStr);
+    if (dateStr == null) return false;
+    final parsed = DateTime.tryParse(dateStr);
+    if (parsed == null) return false;
+    final localStr = parsed.toLocal().toIso8601String().substring(0, 10);
+    return localStr == todayStr;
   }).length;
 
   // 5. Calculate pending orders count
@@ -301,7 +305,7 @@ class DashboardScreen extends ConsumerWidget {
                               separatorBuilder: (context, index) => const Divider(),
                               itemBuilder: (context, index) {
                                 final order = stats.recentOrders[index];
-                                final orderDate = DateTime.tryParse(order['order_date'] ?? '') ?? DateTime.now();
+                                final orderDate = (DateTime.tryParse(order['order_date'] ?? '') ?? DateTime.now()).toLocal();
                                 final formattedDate = DateFormat('dd MMM yyyy, hh:mm a').format(orderDate);
                                 final status = order['status'] ?? 'Pending';
                                 

@@ -129,7 +129,7 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> with SingleTickerPr
                     itemCount: orders.length,
                     itemBuilder: (context, index) {
                       final order = orders[index];
-                      final orderDate = DateTime.tryParse(order['order_date'] ?? '') ?? DateTime.now();
+                      final orderDate = (DateTime.tryParse(order['order_date'] ?? '') ?? DateTime.now()).toLocal();
                       final formattedDate = DateFormat('dd MMM yyyy, hh:mm a').format(orderDate);
                       final status = order['status'] ?? 'Pending';
 

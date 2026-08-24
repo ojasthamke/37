@@ -30,7 +30,7 @@ class OrderDetailsScreen extends ConsumerWidget {
           final order = details.order;
           final items = details.items;
           
-          final orderDate = DateTime.tryParse(order['order_date'] ?? '') ?? DateTime.now();
+          final orderDate = (DateTime.tryParse(order['order_date'] ?? '') ?? DateTime.now()).toLocal();
           final formattedDate = DateFormat('dd MMM yyyy, hh:mm a').format(orderDate);
           final currentStatus = order['status'] ?? 'Pending';
           
