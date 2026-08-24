@@ -29,7 +29,19 @@ jobs:
       - name: Install Dependencies
         run: flutter pub get
 
-      - name: Build Native APK
+      - name: Decode Keystore
+        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/orderkart-release.jks
+
+      - name: Create key.properties
+        run: |
+          cat > android/key.properties <<EOF
+          storePassword=${{ secrets.KEYSTORE_PASSWORD }}
+          keyPassword=${{ secrets.KEY_PASSWORD }}
+          keyAlias=${{ secrets.KEY_ALIAS }}
+          storeFile=orderkart-release.jks
+          EOF
+
+      - name: Build Release APK
         run: flutter build apk --release
 
       - name: Upload APK Artifact
