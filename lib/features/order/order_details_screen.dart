@@ -183,7 +183,97 @@ class OrderDetailsScreen extends ConsumerWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 16),
+
+                // Order Schedule Info
+                if (order['order_type'] != null || order['delivery_date'] != null)
+                  Card(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.schedule_rounded, color: theme.colorScheme.primary),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Order Schedule',
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: theme.colorScheme.primary,
+                                ),
+                              ),
+                              const Spacer(),
+                              if (order['order_type'] != null)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: order['order_type'] == 'Pre-Order'
+                                        ? Colors.orange[50]
+                                        : Colors.green[50],
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: order['order_type'] == 'Pre-Order'
+                                          ? Colors.orange
+                                          : Colors.green,
+                                      width: 0.5,
+                                    ),
+                                  ),
+                                  child: Text(
+                                    order['order_type'] ?? 'Normal',
+                                    style: TextStyle(
+                                      color: order['order_type'] == 'Pre-Order'
+                                          ? Colors.orange[800]
+                                          : Colors.green[800],
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                          const Divider(height: 20),
+                          Row(
+                            children: [
+                              if (order['order_taking_date'] != null) ...[
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text('Order-Taking Date', style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        _formatScheduleDate(order['order_taking_date'].toString()),
+                                        style: const TextStyle(fontWeight: FontWeight.bold),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                              if (order['delivery_date'] != null) ...[
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text('Delivery Date', style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        _formatScheduleDate(order['delivery_date'].toString()),
+                                        style: const TextStyle(fontWeight: FontWeight.bold),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                const SizedBox(height: 8),
 
                 // Order Items Table
                 Card(
@@ -285,6 +375,15 @@ class OrderDetailsScreen extends ConsumerWidget {
         },
       ),
     );
+  }
+
+  String _formatScheduleDate(String dateStr) {
+    try {
+      final date = DateTime.parse(dateStr);
+      return DateFormat('EEEE, d MMM yyyy').format(date);
+    } catch (_) {
+      return dateStr;
+    }
   }
 
   Widget _buildTableHeader(String label) {
