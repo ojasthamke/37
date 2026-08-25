@@ -34,29 +34,14 @@ class OrderDetailsScreen extends ConsumerWidget {
           final formattedDate = DateFormat('dd MMM yyyy, hh:mm a').format(orderDate);
           final currentStatus = order['status'] ?? 'Pending';
           
-          List<String> statusOptions;
-          switch (currentStatus) {
-            case 'Pending':
-              statusOptions = ['Pending', 'Confirmed', 'Cancelled'];
-              break;
-            case 'Confirmed':
-              statusOptions = ['Confirmed', 'Preparing', 'Cancelled'];
-              break;
-            case 'Preparing':
-              statusOptions = ['Preparing', 'Out for Delivery', 'Cancelled'];
-              break;
-            case 'Out for Delivery':
-              statusOptions = ['Out for Delivery', 'Delivered', 'Cancelled'];
-              break;
-            case 'Delivered':
-              statusOptions = ['Delivered'];
-              break;
-            case 'Cancelled':
-              statusOptions = ['Cancelled'];
-              break;
-            default:
-              statusOptions = [currentStatus];
-          }
+          final List<String> statusOptions = [
+            'Pending',
+            'Confirmed',
+            'Preparing',
+            'Out for Delivery',
+            'Delivered',
+            'Cancelled',
+          ];
 
           return SingleChildScrollView(
             padding: const EdgeInsets.all(24.0),
