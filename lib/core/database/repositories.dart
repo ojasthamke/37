@@ -854,7 +854,7 @@ class SupabaseOrderRepository implements OrderRepository {
     }
     
     if (search != null && search.isNotEmpty) {
-      query = query.or('order_number.ilike.%$search%');
+      query = query.or('order_number.ilike.%$search%,customer_name.ilike.%$search%');
     }
     
     final List<dynamic> res = await query.order('order_date', ascending: false);
