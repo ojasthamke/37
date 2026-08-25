@@ -43125,9 +43125,10 @@ a2m(a,b){var s=0,r=A.t(t.D),q,p=this,o,n,m
 var $async$q8=A.o(function(c,d){if(c===1)return A.p(d,r)
 while(true)switch(s){case 0:n=p.a.bd("orders").n4("*, customers(name, phone)")
 if(b!=null&&b!=="All")n=n.d_("status",b)
-m=J
+if(a!=null&&a.length!==0){o=A.j(a)
+n=n.M9("order_number.ilike.%"+o+"%,customer_name.ilike.%"+o+"%")}m=J
 s=3
-return A.l((a!=null&&a.length!==0?n.M9("order_number.ilike.%"+A.j(a)+"%"):n).lw("order_date",!1),$async$q8)
+return A.l(n.lw("order_date",!1),$async$q8)
 case 3:o=m.dS(d,new A.apt(),t.P)
 q=A.Y(o,!0,o.$ti.i("ah.E"))
 s=1
