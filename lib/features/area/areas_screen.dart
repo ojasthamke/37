@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:uuid/uuid.dart';
 
 class AreasScreen extends StatefulWidget {
   const AreasScreen({super.key});
@@ -279,9 +280,10 @@ class _AreasScreenState extends State<AreasScreen> {
                     
                     try {
                       if (area == null) {
-                        final nextIndex = _areas.length + 1;
-                        final areaCode = "AREA-${nextIndex.toString().padLeft(6, '0')}";
+                        final id = const Uuid().v4();
+                        final areaCode = "AREA-${id.substring(0, 8).toUpperCase()}";
                         await _client.from('areas').insert({
+                          'id': id,
                           'area_code': areaCode,
                           'name': nameController.text.trim(),
                           'delivery_schedule': selectedDays,
@@ -416,9 +418,10 @@ class _AreasScreenState extends State<AreasScreen> {
                     try {
                       final schedule = hasOverride ? selectedDays : null;
                       if (road == null) {
-                        final nextIndex = _allRoads.length + 1;
-                        final roadCode = "ROAD-${nextIndex.toString().padLeft(6, '0')}";
+                        final id = const Uuid().v4();
+                        final roadCode = "ROAD-${id.substring(0, 8).toUpperCase()}";
                         await _client.from('roads').insert({
+                          'id': id,
                           'area_id': areaId,
                           'road_code': roadCode,
                           'name': nameController.text.trim(),
@@ -554,9 +557,10 @@ class _AreasScreenState extends State<AreasScreen> {
                     try {
                       final schedule = hasOverride ? selectedDays : null;
                       if (subRoad == null) {
-                        final nextIndex = _allSubRoads.length + 1;
-                        final subRoadCode = "SUBROAD-${nextIndex.toString().padLeft(6, '0')}";
+                        final id = const Uuid().v4();
+                        final subRoadCode = "SUBROAD-${id.substring(0, 8).toUpperCase()}";
                         await _client.from('sub_roads').insert({
+                          'id': id,
                           'road_id': roadId,
                           'subroad_code': subRoadCode,
                           'name': nameController.text.trim(),

@@ -918,6 +918,10 @@ class SupabaseSettingsRepository implements SettingsRepository {
     await _client.from('orders').delete().neq('id', '00000000-0000-0000-0000-000000000000');
     await _client.from('products').delete().neq('id', '00000000-0000-0000-0000-000000000000');
     await _client.from('categories').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    // Clear route-related tables synced from POS app
+    await _client.from('sub_roads').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    await _client.from('roads').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    await _client.from('areas').delete().neq('id', '00000000-0000-0000-0000-000000000000');
   }
 
   @override
