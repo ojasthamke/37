@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../auth/auth_provider.dart';
+import '../auth/login_screen.dart';
 import '../settings/settings_provider.dart';
 import 'dashboard_screen.dart';
 import '../category/categories_screen.dart';
@@ -77,9 +78,16 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
                         backgroundColor: Colors.red,
                         foregroundColor: Colors.white,
                       ),
-                      onPressed: () {
+                      onPressed: () async {
                         Navigator.pop(context);
-                        ref.read(authProvider.notifier).logout();
+                        await ref.read(authProvider.notifier).logout();
+                        if (context.mounted) {
+                          Navigator.pushAndRemoveUntil(
+                            context,
+                            MaterialPageRoute(builder: (context) => const LoginScreen()),
+                            (route) => false,
+                          );
+                        }
                       },
                       child: const Text('Logout'),
                     ),
