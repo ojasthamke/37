@@ -37,6 +37,14 @@ class _AreasScreenState extends State<AreasScreen> {
     'Sunday'
   ];
 
+  String _formatTimeOfDay(TimeOfDay time) {
+    final hour = time.hourOfPeriod == 0 ? 12 : time.hourOfPeriod;
+    final period = time.period == DayPeriod.am ? 'AM' : 'PM';
+    final minute = time.minute.toString().padLeft(2, '0');
+    final hourStr = hour.toString().padLeft(2, '0');
+    return '$hourStr:$minute $period';
+  }
+
   @override
   void initState() {
     super.initState();
@@ -223,6 +231,19 @@ class _AreasScreenState extends State<AreasScreen> {
       selectedDays = List<String>.from(json.decode(json.encode(area['delivery_schedule'])));
     }
 
+    TimeOfDay cutoffTime = const TimeOfDay(hour: 23, minute: 59);
+    if (area != null && area['cutoff_time'] != null) {
+      try {
+        final parts = area['cutoff_time'].toString().split(':');
+        if (parts.length >= 2) {
+          cutoffTime = TimeOfDay(
+            hour: int.parse(parts[0]),
+            minute: int.parse(parts[1]),
+          );
+        }
+      } catch (_) {}
+    }
+
     showDialog(
       context: context,
       builder: (context) {
@@ -240,6 +261,34 @@ class _AreasScreenState extends State<AreasScreen> {
                         labelText: 'Area Name',
                         hintText: 'e.g. Kothrud',
                       ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Order Cutoff Time:',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        TextButton.icon(
+                          icon: const Icon(Icons.access_time_rounded),
+                          label: Text(
+                            _formatTimeOfDay(cutoffTime),
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          onPressed: () async {
+                            final selected = await showTimePicker(
+                              context: context,
+                              initialTime: cutoffTime,
+                            );
+                            if (selected != null) {
+                              setDialogState(() {
+                                cutoffTime = selected;
+                              });
+                            }
+                          },
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 16),
                     const Align(
@@ -278,6 +327,7 @@ class _AreasScreenState extends State<AreasScreen> {
                     if (nameController.text.trim().isEmpty) return;
                     Navigator.pop(context);
                     
+                    final cutoffTimeStr = "${cutoffTime.hour.toString().padLeft(2, '0')}:${cutoffTime.minute.toString().padLeft(2, '0')}:00";
                     try {
                       if (area == null) {
                         final id = const Uuid().v4();
@@ -287,11 +337,13 @@ class _AreasScreenState extends State<AreasScreen> {
                           'area_code': areaCode,
                           'name': nameController.text.trim(),
                           'delivery_schedule': selectedDays,
+                          'cutoff_time': cutoffTimeStr,
                         });
                       } else {
                         await _client.from('areas').update({
                           'name': nameController.text.trim(),
                           'delivery_schedule': selectedDays,
+                          'cutoff_time': cutoffTimeStr,
                         }).eq('id', area['id']);
                       }
                       _fetchAllData();
@@ -620,7 +672,6 @@ class _AreasScreenState extends State<AreasScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final filteredAreas = _areas.where((a) => _isAreaVisible(a, _searchQuery)).toList();
     final selectedCustomers = _getSelectedCustomers();
     
@@ -690,45 +741,91 @@ class _AreasScreenState extends State<AreasScreen> {
                   Container(
                     width: double.infinity,
                     margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                    padding: const EdgeInsets.all(16.0),
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.primaryContainer.withOpacity(0.4),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: theme.colorScheme.primary.withOpacity(0.1)),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Selected: ${selectedCustomers.length} Customers',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                            color: theme.colorScheme.primary,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        const Text('Breakdown:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                        const SizedBox(height: 4),
-                        Wrap(
-                          spacing: 12,
-                          runSpacing: 4,
-                          children: [
-                            ...areaBreakdown.entries.map((e) {
-                              final areaName = _areas.firstWhere((a) => a['id'] == e.key, orElse: () => {'name': 'Unknown'})['name'];
-                              return Chip(
-                                label: Text('$areaName — ${e.value}'),
-                              );
-                            }),
-                            ...roadBreakdown.entries.map((e) {
-                              final roadName = _allRoads.firstWhere((r) => r['id'] == e.key, orElse: () => {'name': 'Unknown'})['name'];
-                              return Chip(
-                                label: Text('$roadName — ${e.value}'),
-                              );
-                            }),
-                          ],
-                        ),
+                      color: const Color(0xFFE8F5E9), // Soft green background
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: const Color(0xFFC8E6C9), width: 1),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.02),
+                          blurRadius: 6,
+                          offset: const Offset(0, 3),
+                        )
                       ],
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.people_alt_rounded, color: Color(0xFF2E7D32), size: 20),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Selected: ${selectedCustomers.length} Customers',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                  color: Color(0xFF2E7D32),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
+                              children: [
+                                ...areaBreakdown.entries.map((e) {
+                                  final areaName = _areas.firstWhere((a) => a['id'] == e.key, orElse: () => {'name': 'Unknown'})['name'];
+                                  return Padding(
+                                    padding: const EdgeInsets.only(right: 8.0),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(color: const Color(0xFFE0E0E0)),
+                                      ),
+                                      child: Text(
+                                        '$areaName: ${e.value}',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.grey[800],
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                }),
+                                ...roadBreakdown.entries.map((e) {
+                                  final roadName = _allRoads.firstWhere((r) => r['id'] == e.key, orElse: () => {'name': 'Unknown'})['name'];
+                                  return Padding(
+                                    padding: const EdgeInsets.only(right: 8.0),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(color: const Color(0xFFE0E0E0)),
+                                      ),
+                                      child: Text(
+                                        '$roadName: ${e.value}',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.grey[800],
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                }),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
@@ -749,6 +846,20 @@ class _AreasScreenState extends State<AreasScreen> {
 
                       final areaCustCount = _allCustomers.where((c) => c['area_id'] == areaId).length;
                       final isAreaChecked = _selectedAreaIds.contains(areaId);
+
+                      final rawCutoff = area['cutoff_time'] as String? ?? '23:59:00';
+                      String formattedCutoff = '11:59 PM';
+                      try {
+                        final parts = rawCutoff.split(':');
+                        if (parts.length >= 2) {
+                          final hour = int.parse(parts[0]);
+                          final minute = int.parse(parts[1]);
+                          final tod = TimeOfDay(hour: hour, minute: minute);
+                          final h = tod.hourOfPeriod == 0 ? 12 : tod.hourOfPeriod;
+                          final period = tod.period == DayPeriod.am ? 'AM' : 'PM';
+                          formattedCutoff = '${h.toString().padLeft(2, '0')}:${tod.minute.toString().padLeft(2, '0')} $period';
+                        }
+                      } catch (_) {}
 
                       return ExpansionTile(
                         key: PageStorageKey<String>('area:$areaId'),
@@ -773,7 +884,7 @@ class _AreasScreenState extends State<AreasScreen> {
                             ),
                           ],
                         ),
-                        subtitle: Text('Schedule: $deliveryDays • $areaCustCount Customers'),
+                        subtitle: Text('Schedule: $deliveryDays (Cutoff: $formattedCutoff) • $areaCustCount Customers'),
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
