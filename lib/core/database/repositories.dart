@@ -471,12 +471,13 @@ class SQLiteOrderRepository implements OrderRepository {
       whereArgs.add('%$search%');
     }
 
+    final String orderBy = preordersOnly ? 'orders.order_taking_date ASC' : 'orders.order_date DESC';
     final query = '''
       SELECT orders.*, customers.name as customer_name, customers.phone as customer_phone
       FROM orders
       LEFT JOIN customers ON orders.customer_id = customers.id
       ${whereClause.isNotEmpty ? 'WHERE $whereClause' : ''}
-      ORDER BY orders.order_date DESC
+      ORDER BY $orderBy
     ''';
 
     return await db.rawQuery(query, whereArgs);
@@ -901,7 +902,10 @@ class SupabaseOrderRepository implements OrderRepository {
       query = query.or('order_number.ilike.%$search%,customer_name.ilike.%$search%');
     }
     
-    final List<dynamic> res = await query.order('order_date', ascending: false);
+    final List<dynamic> res = await query.order(
+      preordersOnly ? 'order_taking_date' : 'order_date',
+      ascending: preordersOnly,
+    );
     return res.map((order) {
       final Map<String, dynamic> mapped = Map.from(order);
       final cust = order['customers'] as Map<String, dynamic>?;
