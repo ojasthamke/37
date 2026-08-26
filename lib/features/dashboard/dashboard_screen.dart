@@ -16,6 +16,7 @@ class DashboardStats {
   final int completedOrders;
   final int totalCustomers;
   final int totalProducts;
+  final int futurePreorders;
   final List<Map<String, dynamic>> recentOrders;
 
   DashboardStats({
@@ -25,6 +26,7 @@ class DashboardStats {
     required this.completedOrders,
     required this.totalCustomers,
     required this.totalProducts,
+    required this.futurePreorders,
     required this.recentOrders,
   });
 }
@@ -48,9 +50,13 @@ final dashboardStatsProvider = FutureProvider<DashboardStats>((ref) async {
   final customersList = await customerRepo.getCustomers();
   final totalCustomers = customersList.length;
 
-  // 3. Fetch orders
+  // 3. Fetch orders (active only)
   final ordersList = await orderRepo.getOrders();
   final totalOrders = ordersList.length;
+
+  // Fetch future preorders
+  final preordersList = await orderRepo.getOrders(preordersOnly: true);
+  final futurePreorders = preordersList.length;
 
   // 4. Calculate today's orders count
   final todayStr = DateTime.now().toIso8601String().substring(0, 10);
@@ -98,6 +104,7 @@ final dashboardStatsProvider = FutureProvider<DashboardStats>((ref) async {
     completedOrders: completedOrders,
     totalCustomers: totalCustomers,
     totalProducts: totalProducts,
+    futurePreorders: futurePreorders,
     recentOrders: recentOrders,
   );
 });
@@ -194,6 +201,13 @@ class DashboardScreen extends ConsumerWidget {
                         value: stats.totalProducts.toString(),
                         icon: Icons.shopping_basket_rounded,
                         color: Colors.teal,
+                      ),
+                      _buildStatCard(
+                        context,
+                        title: 'Future Pre-orders',
+                        value: stats.futurePreorders.toString(),
+                        icon: Icons.schedule_rounded,
+                        color: Colors.indigo,
                       ),
                     ],
                   ),

@@ -53,6 +53,7 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> with SingleTickerPr
   @override
   Widget build(BuildContext context) {
     final ordersAsync = ref.watch(orderListProvider);
+    final filter = ref.watch(orderFilterProvider);
     final theme = Theme.of(context);
 
     return Scaffold(
@@ -88,6 +89,34 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> with SingleTickerPr
                       setState(() {});
                     },
                   ),
+                ),
+              ],
+            ),
+          ),
+
+          // Segment filter: Active Orders vs Pre-orders
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+            child: Row(
+              children: [
+                ChoiceChip(
+                  label: const Text('Active Orders'),
+                  selected: !filter.preordersOnly,
+                  onSelected: (selected) {
+                    if (selected) {
+                      ref.read(orderFilterProvider.notifier).setPreordersOnly(false);
+                    }
+                  },
+                ),
+                const SizedBox(width: 12),
+                ChoiceChip(
+                  label: const Text('Pre-orders'),
+                  selected: filter.preordersOnly,
+                  onSelected: (selected) {
+                    if (selected) {
+                      ref.read(orderFilterProvider.notifier).setPreordersOnly(true);
+                    }
+                  },
                 ),
               ],
             ),
@@ -132,6 +161,13 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> with SingleTickerPr
                       final orderDate = (DateTime.tryParse(order['order_date'] ?? '') ?? DateTime.now()).toLocal();
                       final formattedDate = DateFormat('dd MMM yyyy, hh:mm a').format(orderDate);
                       final status = order['status'] ?? 'Pending';
+                      final bool isPreorder = order['order_type'] == 'Pre-Order';
+                      final orderTakingDate = order['order_taking_date'] != null
+                          ? DateTime.tryParse(order['order_taking_date'])
+                          : null;
+                      final deliveryDate = order['delivery_date'] != null
+                          ? DateTime.tryParse(order['delivery_date'])
+                          : null;
 
                       return Card(
                         margin: const EdgeInsets.only(bottom: 12),
@@ -172,6 +208,27 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> with SingleTickerPr
                                         'Customer: ${order['customer_name'] ?? 'Guest'}',
                                         style: const TextStyle(fontWeight: FontWeight.w500),
                                       ),
+                                      if (isPreorder) ...[
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          'Pre-Order for: ${orderTakingDate != null ? DateFormat('dd MMM yyyy').format(orderTakingDate) : 'N/A'}',
+                                          style: TextStyle(color: Colors.green[800], fontSize: 12, fontWeight: FontWeight.bold),
+                                        ),
+                                        if (deliveryDate != null) ...[
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            'Delivery: ${DateFormat('dd MMM yyyy').format(deliveryDate)}',
+                                            style: TextStyle(color: Colors.green[700], fontSize: 12, fontWeight: FontWeight.bold),
+                                          ),
+                                        ],
+                                      ],
+                                      if (order['area_name'] != null) ...[
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          'Area: ${order['area_name']}',
+                                          style: TextStyle(color: Colors.grey[700], fontSize: 12, fontWeight: FontWeight.w500),
+                                        ),
+                                      ],
                                       const SizedBox(height: 4),
                                       Text(
                                         'Date: $formattedDate',

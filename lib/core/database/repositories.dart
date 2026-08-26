@@ -80,7 +80,7 @@ abstract class CustomerRepository {
 }
 
 abstract class OrderRepository {
-  Future<List<Map<String, dynamic>>> getOrders({String? status, String? search});
+  Future<List<Map<String, dynamic>>> getOrders({String? status, String? search, bool preordersOnly = false});
   Future<Map<String, dynamic>?> getOrderById(String id);
   Future<List<Map<String, dynamic>>> getOrderItems(String orderId);
   Future<void> updateOrderStatus(String orderId, String status);
@@ -208,6 +208,17 @@ class SQLiteProductRepository implements ProductRepository {
         }
       } else {
         mapped['description'] = desc;
+      }
+
+      // Override from standalone db columns if present
+      if (p['mrp'] != null) {
+        mapped['market_price'] = (p['mrp'] as num).toDouble();
+      }
+      if (p['stock'] != null) {
+        mapped['stock'] = (p['stock'] as num).toDouble();
+      }
+      if (p['price'] != null) {
+        mapped['price'] = (p['price'] as num).toDouble();
       }
       return mapped;
     }).toList();
@@ -435,13 +446,20 @@ class SQLiteOrderRepository implements OrderRepository {
   final DatabaseHelper _dbHelper = DatabaseHelper.instance;
 
   @override
-  Future<List<Map<String, dynamic>>> getOrders({String? status, String? search}) async {
+  Future<List<Map<String, dynamic>>> getOrders({String? status, String? search, bool preordersOnly = false}) async {
     final db = await _dbHelper.database;
     
     String whereClause = '';
     List<dynamic> whereArgs = [];
 
+    if (preordersOnly) {
+      whereClause = "orders.order_type = 'Pre-Order' AND date(orders.order_taking_date) > date('now')";
+    } else {
+      whereClause = "(orders.order_type = 'Normal' OR orders.order_type IS NULL OR (orders.order_type = 'Pre-Order' AND date(orders.order_taking_date) <= date('now')))";
+    }
+
     if (status != null && status != 'All') {
+      if (whereClause.isNotEmpty) whereClause += ' AND ';
       whereClause += 'orders.status = ?';
       whereArgs.add(status);
     }
@@ -621,6 +639,17 @@ class SupabaseProductRepository implements ProductRepository {
       } else {
         mapped['description'] = desc;
       }
+
+      // Override from standalone db columns if present
+      if (p['mrp'] != null) {
+        mapped['market_price'] = (p['mrp'] as num).toDouble();
+      }
+      if (p['stock'] != null) {
+        mapped['stock'] = (p['stock'] as num).toDouble();
+      }
+      if (p['price'] != null) {
+        mapped['price'] = (p['price'] as num).toDouble();
+      }
       return mapped;
     }).toList();
   }
@@ -672,6 +701,9 @@ class SupabaseProductRepository implements ProductRepository {
       'image_path': imagePath ?? '',
       'description': encodedDesc,
       'price': price,
+      'selling_price': price,
+      'mrp': marketPrice,
+      'stock': stock,
       'unit': unit,
       'is_available': isAvailable,
       'is_enabled': isEnabled,
@@ -752,6 +784,9 @@ class SupabaseProductRepository implements ProductRepository {
       'category_id': categoryId,
       'description': mergedDescription,
       'price': price,
+      'selling_price': price,
+      'mrp': marketPrice,
+      'stock': stock,
       'unit': unit,
       'is_available': isAvailable,
       'is_enabled': isEnabled,
@@ -846,9 +881,18 @@ class SupabaseOrderRepository implements OrderRepository {
   final SupabaseClient _client = Supabase.instance.client;
 
   @override
-  Future<List<Map<String, dynamic>>> getOrders({String? status, String? search}) async {
+  Future<List<Map<String, dynamic>>> getOrders({String? status, String? search, bool preordersOnly = false}) async {
     var query = _client.from('orders').select('*, customers(name, phone)');
     
+    final nowLocal = DateTime.now().toUtc().add(const Duration(hours: 5, minutes: 30));
+    final todayStr = "${nowLocal.year}-${nowLocal.month.toString().padLeft(2, '0')}-${nowLocal.day.toString().padLeft(2, '0')}";
+
+    if (preordersOnly) {
+      query = query.eq('order_type', 'Pre-Order').gt('order_taking_date', todayStr);
+    } else {
+      query = query.or('order_type.eq.Normal,order_type.is.null,and(order_type.eq.Pre-Order,order_taking_date.lte.$todayStr)');
+    }
+
     if (status != null && status != 'All') {
       query = query.eq('status', status);
     }

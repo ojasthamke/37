@@ -8,13 +8,15 @@ import '../../core/services/notification_service.dart';
 class OrderFilter {
   final String status;
   final String search;
+  final bool preordersOnly;
 
-  OrderFilter({this.status = 'All', this.search = ''});
+  OrderFilter({this.status = 'All', this.search = '', this.preordersOnly = false});
 
-  OrderFilter copyWith({String? status, String? search}) {
+  OrderFilter copyWith({String? status, String? search, bool? preordersOnly}) {
     return OrderFilter(
       status: status ?? this.status,
       search: search ?? this.search,
+      preordersOnly: preordersOnly ?? this.preordersOnly,
     );
   }
 }
@@ -28,6 +30,10 @@ class OrderFilterNotifier extends StateNotifier<OrderFilter> {
 
   void setSearch(String search) {
     state = state.copyWith(search: search);
+  }
+
+  void setPreordersOnly(bool val) {
+    state = state.copyWith(preordersOnly: val);
   }
 
   void clearFilters() {
@@ -47,10 +53,10 @@ class OrderListNotifier extends StateNotifier<AsyncValue<List<Map<String, dynami
 
   OrderListNotifier(this._ref) : super(const AsyncValue.loading()) {
     _ref.listen<OrderFilter>(orderFilterProvider, (previous, next) {
-      fetchOrders(status: next.status, search: next.search);
+      fetchOrders(status: next.status, search: next.search, preordersOnly: next.preordersOnly);
     });
     final filters = _ref.read(orderFilterProvider);
-    fetchOrders(status: filters.status, search: filters.search);
+    fetchOrders(status: filters.status, search: filters.search, preordersOnly: filters.preordersOnly);
 
     // Setup periodic polling every 10 seconds to auto-refresh orders list!
     _pollTimer = Timer.periodic(const Duration(seconds: 10), (_) {
@@ -102,11 +108,11 @@ class OrderListNotifier extends StateNotifier<AsyncValue<List<Map<String, dynami
     }
   }
 
-  Future<void> fetchOrders({required String status, required String search}) async {
+  Future<void> fetchOrders({required String status, required String search, bool preordersOnly = false}) async {
     state = const AsyncValue.loading();
     try {
       final repo = _ref.read(orderRepositoryProvider);
-      final list = await repo.getOrders(status: status, search: search);
+      final list = await repo.getOrders(status: status, search: search, preordersOnly: preordersOnly);
       
       final isInitialLoad = _seenOrderIds.isEmpty;
       for (final ord in list) {
@@ -127,14 +133,14 @@ class OrderListNotifier extends StateNotifier<AsyncValue<List<Map<String, dynami
 
   Future<void> refresh() async {
     final filters = _ref.read(orderFilterProvider);
-    await fetchOrders(status: filters.status, search: filters.search);
+    await fetchOrders(status: filters.status, search: filters.search, preordersOnly: filters.preordersOnly);
   }
 
   Future<void> silentRefresh() async {
     try {
       final filters = _ref.read(orderFilterProvider);
       final repo = _ref.read(orderRepositoryProvider);
-      final list = await repo.getOrders(status: filters.status, search: filters.search);
+      final list = await repo.getOrders(status: filters.status, search: filters.search, preordersOnly: filters.preordersOnly);
       
       final isInitialLoad = _seenOrderIds.isEmpty;
       for (final ord in list) {
