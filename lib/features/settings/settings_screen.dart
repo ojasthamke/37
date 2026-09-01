@@ -16,6 +16,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   late TextEditingController _addressController;
   late TextEditingController _deliveryChargeController;
   late TextEditingController _freeDeliveryThresholdController;
+  late TextEditingController _orderNowDeliveryChargeController;
+  late TextEditingController _orderNowFreeDeliveryThresholdController;
+  String _orderNowStatus = 'open';
 
   @override
   void initState() {
@@ -25,6 +28,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _addressController = TextEditingController();
     _deliveryChargeController = TextEditingController();
     _freeDeliveryThresholdController = TextEditingController();
+    _orderNowDeliveryChargeController = TextEditingController();
+    _orderNowFreeDeliveryThresholdController = TextEditingController();
     
     // Populate controllers once values are loaded
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -34,6 +39,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       _addressController.text = settings['store_address'] ?? '';
       _deliveryChargeController.text = settings['delivery_charge'] ?? '30';
       _freeDeliveryThresholdController.text = settings['free_delivery_threshold'] ?? '300';
+      _orderNowDeliveryChargeController.text = settings['order_now_delivery_charge'] ?? settings['quick_delivery_charge'] ?? '10';
+      _orderNowFreeDeliveryThresholdController.text = settings['order_now_free_delivery_threshold'] ?? '100000';
+      setState(() {
+        _orderNowStatus = settings['order_now_status'] ?? 'open';
+      });
     });
   }
 
@@ -44,13 +54,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _addressController.dispose();
     _deliveryChargeController.dispose();
     _freeDeliveryThresholdController.dispose();
+    _orderNowDeliveryChargeController.dispose();
+    _orderNowFreeDeliveryThresholdController.dispose();
     super.dispose();
   }
 
   void _saveStoreDetails() async {
     if (_formKey.currentState!.validate()) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Updating store configuration...')),
+        const SnackBar(content: Text('Updating store & delivery configuration...')),
       );
       try {
         await Future.wait([
@@ -59,11 +71,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ref.read(settingsProvider.notifier).updateSetting('store_address', _addressController.text.trim()),
           ref.read(settingsProvider.notifier).updateSetting('delivery_charge', _deliveryChargeController.text.trim()),
           ref.read(settingsProvider.notifier).updateSetting('free_delivery_threshold', _freeDeliveryThresholdController.text.trim()),
+          ref.read(settingsProvider.notifier).updateSetting('order_now_delivery_charge', _orderNowDeliveryChargeController.text.trim()),
+          ref.read(settingsProvider.notifier).updateSetting('quick_delivery_charge', _orderNowDeliveryChargeController.text.trim()),
+          ref.read(settingsProvider.notifier).updateSetting('order_now_free_delivery_threshold', _orderNowFreeDeliveryThresholdController.text.trim()),
+          ref.read(settingsProvider.notifier).updateSetting('order_now_status', _orderNowStatus),
         ]);
         if (mounted) {
           ScaffoldMessenger.of(context).hideCurrentSnackBar();
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Store configuration updated successfully')),
+            const SnackBar(content: Text('Configuration saved successfully!')),
           );
         }
       } catch (e) {
@@ -90,6 +106,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         _addressController.text = next.values['store_address'] ?? '';
         _deliveryChargeController.text = next.values['delivery_charge'] ?? '30';
         _freeDeliveryThresholdController.text = next.values['free_delivery_threshold'] ?? '300';
+        _orderNowDeliveryChargeController.text = next.values['order_now_delivery_charge'] ?? next.values['quick_delivery_charge'] ?? '10';
+        _orderNowFreeDeliveryThresholdController.text = next.values['order_now_free_delivery_threshold'] ?? '100000';
+        setState(() {
+          _orderNowStatus = next.values['order_now_status'] ?? 'open';
+        });
       }
     });
 
@@ -98,24 +119,32 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
               padding: const EdgeInsets.all(24.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Store Configuration Form Card
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(20.0),
-                      child: Form(
-                        key: _formKey,
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Store Information Form Card
+                    Card(
+                      elevation: 1,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      child: Padding(
+                        padding: const EdgeInsets.all(20.0),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              'Store Configuration',
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: theme.colorScheme.primary,
-                              ),
+                            Row(
+                              children: [
+                                Icon(Icons.storefront_rounded, color: theme.colorScheme.primary),
+                                const SizedBox(width: 10),
+                                Text(
+                                  'Store Information',
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: theme.colorScheme.primary,
+                                  ),
+                                ),
+                              ],
                             ),
                             const Divider(height: 24),
                             
@@ -166,64 +195,186 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                 return null;
                               },
                             ),
-                            const SizedBox(height: 16),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
 
-                            // Delivery Charge
-                            TextFormField(
-                              controller: _deliveryChargeController,
-                              decoration: const InputDecoration(
-                                labelText: 'Delivery Charge (₹)',
-                                prefixIcon: Icon(Icons.delivery_dining_rounded),
+                    // Delivery & Charges Configuration Card
+                    Card(
+                      elevation: 1,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      child: Padding(
+                        padding: const EdgeInsets.all(20.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(Icons.local_shipping_rounded, color: theme.colorScheme.primary),
+                                const SizedBox(width: 10),
+                                Text(
+                                  'Delivery & Shipping Charges',
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: theme.colorScheme.primary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const Divider(height: 24),
+
+                            // Standard Delivery Section Header
+                            Text(
+                              'Standard Delivery (Home Orders)',
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFF1E293B),
                               ),
-                              keyboardType: TextInputType.number,
-                              validator: (val) {
-                                if (val == null || val.trim().isEmpty) {
-                                  return 'Please enter delivery charge';
-                                }
-                                if (double.tryParse(val.trim()) == null) {
-                                  return 'Please enter a valid amount';
-                                }
-                                return null;
-                              },
+                            ),
+                            const SizedBox(height: 12),
+                            
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: TextFormField(
+                                    controller: _deliveryChargeController,
+                                    decoration: const InputDecoration(
+                                      labelText: 'Delivery Charge (₹)',
+                                      prefixIcon: Icon(Icons.delivery_dining_rounded),
+                                    ),
+                                    keyboardType: TextInputType.number,
+                                    validator: (val) {
+                                      if (val == null || val.trim().isEmpty) {
+                                        return 'Required';
+                                      }
+                                      if (double.tryParse(val.trim()) == null) {
+                                        return 'Invalid number';
+                                      }
+                                      return null;
+                                    },
+                                  ),
+                                ),
+                                const SizedBox(width: 14),
+                                Expanded(
+                                  child: TextFormField(
+                                    controller: _freeDeliveryThresholdController,
+                                    decoration: const InputDecoration(
+                                      labelText: 'Free Above (₹)',
+                                      prefixIcon: Icon(Icons.local_offer_rounded),
+                                    ),
+                                    keyboardType: TextInputType.number,
+                                    validator: (val) {
+                                      if (val == null || val.trim().isEmpty) {
+                                        return 'Required';
+                                      }
+                                      if (double.tryParse(val.trim()) == null) {
+                                        return 'Invalid number';
+                                      }
+                                      return null;
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 24),
+
+                            // Quick Order Section Header
+                            Text(
+                              'Quick Order (Flash / Order Now)',
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFFD97706),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: TextFormField(
+                                    controller: _orderNowDeliveryChargeController,
+                                    decoration: const InputDecoration(
+                                      labelText: 'Quick Delivery Fee (₹)',
+                                      prefixIcon: Icon(Icons.bolt_rounded),
+                                    ),
+                                    keyboardType: TextInputType.number,
+                                    validator: (val) {
+                                      if (val == null || val.trim().isEmpty) {
+                                        return 'Required';
+                                      }
+                                      if (double.tryParse(val.trim()) == null) {
+                                        return 'Invalid number';
+                                      }
+                                      return null;
+                                    },
+                                  ),
+                                ),
+                                const SizedBox(width: 14),
+                                Expanded(
+                                  child: TextFormField(
+                                    controller: _orderNowFreeDeliveryThresholdController,
+                                    decoration: const InputDecoration(
+                                      labelText: 'Free Above (₹)',
+                                      prefixIcon: Icon(Icons.card_giftcard_rounded),
+                                    ),
+                                    keyboardType: TextInputType.number,
+                                    validator: (val) {
+                                      if (val == null || val.trim().isEmpty) {
+                                        return 'Required';
+                                      }
+                                      if (double.tryParse(val.trim()) == null) {
+                                        return 'Invalid number';
+                                      }
+                                      return null;
+                                    },
+                                  ),
+                                ),
+                              ],
                             ),
                             const SizedBox(height: 16),
 
-                            // Free Delivery Threshold
-                            TextFormField(
-                              controller: _freeDeliveryThresholdController,
+                            // Quick Order Store Status Dropdown
+                            DropdownButtonFormField<String>(
+                              initialValue: _orderNowStatus,
                               decoration: const InputDecoration(
-                                labelText: 'Free Delivery Threshold (₹)',
-                                prefixIcon: Icon(Icons.local_offer_rounded),
+                                labelText: 'Order Now Store Status',
+                                prefixIcon: Icon(Icons.toggle_on_rounded),
                               ),
-                              keyboardType: TextInputType.number,
-                              validator: (val) {
-                                if (val == null || val.trim().isEmpty) {
-                                  return 'Please enter free delivery threshold';
+                              items: const [
+                                DropdownMenuItem(value: 'open', child: Text('Open (Taking Orders)')),
+                                DropdownMenuItem(value: 'coming_soon', child: Text('Coming Soon (Preview Only)')),
+                                DropdownMenuItem(value: 'closed', child: Text('Closed')),
+                              ],
+                              onChanged: (val) {
+                                if (val != null) {
+                                  setState(() {
+                                    _orderNowStatus = val;
+                                  });
                                 }
-                                if (double.tryParse(val.trim()) == null) {
-                                  return 'Please enter a valid amount';
-                                }
-                                return null;
                               },
                             ),
                             const SizedBox(height: 24),
-                            
+
                             // Save Button
                             SizedBox(
                               width: double.infinity,
-                              height: 48,
+                              height: 50,
                               child: ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                ),
                                 onPressed: _saveStoreDetails,
                                 icon: const Icon(Icons.save_rounded),
-                                label: const Text('SAVE STORE CONFIG'),
+                                label: const Text('SAVE SETTINGS & CHARGES', style: TextStyle(fontWeight: FontWeight.bold)),
                               ),
                             ),
                           ],
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 24),
+                    const SizedBox(height: 24),
 
                   // Data Administration Card
                   Card(
@@ -293,6 +444,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ],
               ),
             ),
+          ),
     );
   }
 }

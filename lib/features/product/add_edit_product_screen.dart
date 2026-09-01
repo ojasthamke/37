@@ -36,6 +36,13 @@ class _AddEditProductScreenState extends ConsumerState<AddEditProductScreen> {
   late TextEditingController _packDateController;
   bool _prescriptionRequired = false;
 
+  // Order Now specific fields
+  late TextEditingController _orderNowPriceController;
+  late TextEditingController _orderNowMrpController;
+  late TextEditingController _orderNowCostPriceController;
+  late TextEditingController _orderNowStockController;
+  bool _orderNowIsAvailable = true;
+
   String? _selectedCategoryId;
   String _selectedUnit = 'kg';
   bool _isAvailable = true;
@@ -70,6 +77,12 @@ class _AddEditProductScreenState extends ConsumerState<AddEditProductScreen> {
     _packDateController = TextEditingController(text: isEdit ? (p['pack_date'] ?? '') : '');
     _prescriptionRequired = isEdit ? (p['prescription_required'] == true) : false;
 
+    _orderNowPriceController = TextEditingController(text: isEdit ? (p['order_now_price'] != null && (p['order_now_price'] as num) > 0 ? p['order_now_price'].toString() : '') : '');
+    _orderNowMrpController = TextEditingController(text: isEdit ? (p['order_now_mrp'] != null && (p['order_now_mrp'] as num) > 0 ? p['order_now_mrp'].toString() : '') : '');
+    _orderNowCostPriceController = TextEditingController(text: isEdit ? (p['order_now_cost_price'] != null && (p['order_now_cost_price'] as num) > 0 ? p['order_now_cost_price'].toString() : '') : '');
+    _orderNowStockController = TextEditingController(text: isEdit ? (p['order_now_stock']?.toString() ?? '') : '');
+    _orderNowIsAvailable = isEdit ? (p['order_now_is_available'] == null ? true : (p['order_now_is_available'] == true || p['order_now_is_available'] == 1)) : true;
+
     _selectedCategoryId = isEdit ? p['category_id'] : null;
     _selectedUnit = isEdit ? (p['unit'] ?? 'kg') : 'kg';
     _isAvailable = isEdit ? (p['is_available'] == true || p['is_available'] == 1) : true;
@@ -95,6 +108,10 @@ class _AddEditProductScreenState extends ConsumerState<AddEditProductScreen> {
     _dosageInfoController.dispose();
     _bestBeforeController.dispose();
     _packDateController.dispose();
+    _orderNowPriceController.dispose();
+    _orderNowMrpController.dispose();
+    _orderNowCostPriceController.dispose();
+    _orderNowStockController.dispose();
     super.dispose();
   }
 
@@ -185,6 +202,12 @@ class _AddEditProductScreenState extends ConsumerState<AddEditProductScreen> {
       final bestBefore = _bestBeforeController.text.trim();
       final packDate = _packDateController.text.trim();
 
+      final orderNowPrice = double.tryParse(_orderNowPriceController.text) ?? 0.0;
+      final orderNowMrp = double.tryParse(_orderNowMrpController.text) ?? 0.0;
+      final orderNowCostPrice = double.tryParse(_orderNowCostPriceController.text) ?? 0.0;
+      final orderNowStock = double.tryParse(_orderNowStockController.text) ?? 0.0;
+      final orderNowIsAvailable = _orderNowIsAvailable;
+
       final isEdit = widget.product != null;
 
       // Show Saving progress
@@ -231,6 +254,11 @@ class _AddEditProductScreenState extends ConsumerState<AddEditProductScreen> {
               dosageInfo: dosageInfo,
               bestBefore: bestBefore,
               packDate: packDate,
+              orderNowPrice: orderNowPrice,
+              orderNowMrp: orderNowMrp,
+              orderNowStock: orderNowStock,
+              orderNowCostPrice: orderNowCostPrice,
+              orderNowIsAvailable: orderNowIsAvailable,
             );
       } else {
         success = await ref.read(productListProvider.notifier).addProduct(
@@ -255,6 +283,11 @@ class _AddEditProductScreenState extends ConsumerState<AddEditProductScreen> {
               dosageInfo: dosageInfo,
               bestBefore: bestBefore,
               packDate: packDate,
+              orderNowPrice: orderNowPrice,
+              orderNowMrp: orderNowMrp,
+              orderNowStock: orderNowStock,
+              orderNowCostPrice: orderNowCostPrice,
+              orderNowIsAvailable: orderNowIsAvailable,
             );
       }
 
@@ -332,7 +365,7 @@ class _AddEditProductScreenState extends ConsumerState<AddEditProductScreen> {
                           ),
                           const SizedBox(height: 16),
                           DropdownButtonFormField<String>(
-                            value: _selectedCategoryId,
+                            initialValue: _selectedCategoryId,
                             decoration: const InputDecoration(
                               labelText: 'Category',
                             ),
@@ -478,19 +511,25 @@ class _AddEditProductScreenState extends ConsumerState<AddEditProductScreen> {
                   ),
                   const SizedBox(height: 16),
 
-                  // 2. Pricing & Stock
+                  // 2. Home Pricing & Stock
                   Card(
                     child: Padding(
                       padding: const EdgeInsets.all(16.0),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            'Pricing & Stock',
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: theme.colorScheme.primary,
-                            ),
+                          Row(
+                            children: [
+                              Icon(Icons.home_outlined, color: theme.colorScheme.primary, size: 20),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Home (Standard Delivery) Pricing & Stock',
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: theme.colorScheme.primary,
+                                ),
+                              ),
+                            ],
                           ),
                           const Divider(height: 20),
                           Row(
@@ -499,7 +538,7 @@ class _AddEditProductScreenState extends ConsumerState<AddEditProductScreen> {
                                 child: TextFormField(
                                   controller: _priceController,
                                   decoration: const InputDecoration(
-                                    labelText: 'Selling Price (₹)',
+                                    labelText: 'Home Selling Price (₹)',
                                     prefixText: '₹ ',
                                   ),
                                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -539,7 +578,7 @@ class _AddEditProductScreenState extends ConsumerState<AddEditProductScreen> {
                               const SizedBox(width: 12),
                               Expanded(
                                 child: DropdownButtonFormField<String>(
-                                  value: _selectedUnit,
+                                  initialValue: _selectedUnit,
                                   decoration: const InputDecoration(labelText: 'Unit'),
                                   items: _units.map((unit) {
                                     return DropdownMenuItem<String>(
@@ -565,7 +604,7 @@ class _AddEditProductScreenState extends ConsumerState<AddEditProductScreen> {
                                 child: TextFormField(
                                   controller: _stockController,
                                   decoration: const InputDecoration(
-                                    labelText: 'Stock Qty',
+                                    labelText: 'Home Stock Qty',
                                   ),
                                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
                                 ),
@@ -576,6 +615,93 @@ class _AddEditProductScreenState extends ConsumerState<AddEditProductScreen> {
                                   controller: _minStockController,
                                   decoration: const InputDecoration(
                                     labelText: 'Min Stock Alert Qty',
+                                  ),
+                                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // 2.5 ⚡ Order Now (Quick Order) Pricing & Stock
+                  Card(
+                    color: Colors.amber.shade50.withValues(alpha: 0.5),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.bolt, color: Colors.orange, size: 22),
+                              const SizedBox(width: 8),
+                              Text(
+                                '⚡ Order Now (Quick Order) Pricing & Stock',
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.orange.shade900,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Independent inventory and pricing for Order Now (Instant Delivery).',
+                            style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+                          ),
+                          const Divider(height: 20),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: TextFormField(
+                                  controller: _orderNowPriceController,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Order Now Price (₹)',
+                                    hintText: 'Leave empty for Home price',
+                                    prefixText: '₹ ',
+                                  ),
+                                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: TextFormField(
+                                  controller: _orderNowMrpController,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Order Now MRP (₹)',
+                                    hintText: 'Optional',
+                                    prefixText: '₹ ',
+                                  ),
+                                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: TextFormField(
+                                  controller: _orderNowStockController,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Order Now Stock Qty',
+                                    hintText: 'Independent stock',
+                                  ),
+                                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: TextFormField(
+                                  controller: _orderNowCostPriceController,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Order Now Cost (₹)',
+                                    hintText: 'Optional',
+                                    prefixText: '₹ ',
                                   ),
                                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
                                 ),
@@ -755,8 +881,8 @@ class _AddEditProductScreenState extends ConsumerState<AddEditProductScreen> {
                           const Divider(height: 20),
                           SwitchListTile(
                             contentPadding: EdgeInsets.zero,
-                            title: const Text('Available (In Stock)'),
-                            subtitle: const Text('Shows Out of Stock if disabled'),
+                            title: const Text('Home Catalog: In Stock'),
+                            subtitle: const Text('Shows Out of Stock in standard Home section if turned off'),
                             value: _isAvailable,
                             onChanged: (val) {
                               setState(() {
@@ -764,10 +890,29 @@ class _AddEditProductScreenState extends ConsumerState<AddEditProductScreen> {
                               });
                             },
                           ),
+                          const Divider(height: 12),
                           SwitchListTile(
                             contentPadding: EdgeInsets.zero,
-                            title: const Text('Product Status (Enabled)'),
-                            subtitle: const Text('Hide product from shop entirely if disabled'),
+                            title: const Row(
+                              children: [
+                                Icon(Icons.bolt, color: Colors.orange, size: 18),
+                                SizedBox(width: 4),
+                                Text('Order Now: In Stock'),
+                              ],
+                            ),
+                            subtitle: const Text('Shows Out of Stock in Order Now section if turned off'),
+                            value: _orderNowIsAvailable,
+                            onChanged: (val) {
+                              setState(() {
+                                _orderNowIsAvailable = val;
+                              });
+                            },
+                          ),
+                          const Divider(height: 12),
+                          SwitchListTile(
+                            contentPadding: EdgeInsets.zero,
+                            title: const Text('Master Product Status (Enabled)'),
+                            subtitle: const Text('Completely hide product from entire app if disabled'),
                             value: _isEnabled,
                             onChanged: (val) {
                               setState(() {

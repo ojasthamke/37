@@ -230,7 +230,7 @@ class DashboardScreen extends ConsumerWidget {
                             children: [
                               CircleAvatar(
                                 radius: 24,
-                                backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
+                                backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.1),
                                 child: Icon(
                                   Icons.delivery_dining_rounded,
                                   color: theme.colorScheme.primary,
@@ -405,7 +405,7 @@ class DashboardScreen extends ConsumerWidget {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: color.withOpacity(0.1),
+                    color: color.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(icon, color: color, size: 24),
@@ -475,9 +475,9 @@ class DashboardScreen extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: color.withOpacity(0.5), width: 0.5),
+        border: Border.all(color: color.withValues(alpha: 0.5), width: 0.5),
       ),
       child: Text(
         status,

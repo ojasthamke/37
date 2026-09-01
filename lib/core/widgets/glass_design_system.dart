@@ -40,7 +40,7 @@ class GlassContainer extends StatelessWidget {
         borderRadius: r,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.25 : 0.08),
+            color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.08),
             blurRadius: 18,
             offset: const Offset(0, 8),
           )
@@ -59,16 +59,16 @@ class GlassContainer extends StatelessWidget {
                 end: Alignment.bottomRight,
                 colors: [
                   (color ?? (isDark ? const Color(0xFF1E293B) : Colors.white))
-                      .withOpacity(isDark ? 0.55 : 0.80),
+                      .withValues(alpha: isDark ? 0.55 : 0.80),
                   (color ?? (isDark ? const Color(0xFF0F172A) : Colors.white))
-                      .withOpacity(isDark ? 0.30 : 0.45),
+                      .withValues(alpha: isDark ? 0.30 : 0.45),
                 ],
               ),
               border: Border.all(
                 color: borderColor ??
                     (isDark
-                        ? Colors.white.withOpacity(0.18)
-                        : Colors.black.withOpacity(0.12)),
+                        ? Colors.white.withValues(alpha: 0.18)
+                        : Colors.black.withValues(alpha: 0.12)),
                 width: 1.2,
               ),
             ),
@@ -203,8 +203,8 @@ class GlassChip extends StatelessWidget {
       child: GlassContainer(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         borderRadius: BorderRadius.circular(15),
-        color: isSelected ? AppColors.primary.withOpacity(0.25) : null,
-        borderColor: isSelected ? AppColors.primary.withOpacity(0.5) : null,
+        color: isSelected ? AppColors.primary.withValues(alpha: 0.25) : null,
+        borderColor: isSelected ? AppColors.primary.withValues(alpha: 0.5) : null,
         child: Text(
           label,
           style: TextStyle(
@@ -245,11 +245,11 @@ class GlassSwitch extends StatelessWidget {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
           color: value
-              ? AppColors.primary.withOpacity(0.3)
+              ? AppColors.primary.withValues(alpha: 0.3)
               : (isDark ? Colors.white10 : Colors.black12),
           border: Border.all(
             color:
-                value ? AppColors.primary.withOpacity(0.5) : Colors.transparent,
+                value ? AppColors.primary.withValues(alpha: 0.5) : Colors.transparent,
           ),
         ),
         child: Align(

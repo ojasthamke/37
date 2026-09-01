@@ -42,7 +42,7 @@ class CustomerDetailsScreen extends ConsumerWidget {
                       children: [
                         CircleAvatar(
                           radius: 36,
-                          backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
+                          backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.1),
                           child: Icon(
                             Icons.person_rounded,
                             size: 40,
@@ -242,9 +242,9 @@ class CustomerDetailsScreen extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: color.withOpacity(0.5), width: 0.5),
+        border: Border.all(color: color.withValues(alpha: 0.5), width: 0.5),
       ),
       child: Text(
         status,

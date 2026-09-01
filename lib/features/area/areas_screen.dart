@@ -747,7 +747,7 @@ class _AreasScreenState extends State<AreasScreen> {
                       border: Border.all(color: const Color(0xFFC8E6C9), width: 1),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.02),
+                          color: Colors.black.withValues(alpha: 0.02),
                           blurRadius: 6,
                           offset: const Offset(0, 3),
                         )

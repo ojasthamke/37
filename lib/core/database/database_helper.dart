@@ -38,6 +38,13 @@ class DatabaseHelper {
       version: 2,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
+      onOpen: (db) async {
+        try { await db.execute("ALTER TABLE products ADD COLUMN order_now_stock REAL DEFAULT 0.0"); } catch (_) {}
+        try { await db.execute("ALTER TABLE products ADD COLUMN order_now_price REAL DEFAULT 0.0"); } catch (_) {}
+        try { await db.execute("ALTER TABLE products ADD COLUMN order_now_mrp REAL DEFAULT 0.0"); } catch (_) {}
+        try { await db.execute("ALTER TABLE products ADD COLUMN order_now_cost_price REAL DEFAULT 0.0"); } catch (_) {}
+        try { await db.execute("ALTER TABLE products ADD COLUMN order_now_is_available INTEGER DEFAULT 1"); } catch (_) {}
+      },
     );
   }
 

@@ -51,7 +51,7 @@ class AppTheme {
         foregroundColor: textPrimaryLight,
         elevation: 0,
         scrolledUnderElevation: 1,
-        shadowColor: Colors.black.withOpacity(0.08),
+        shadowColor: Colors.black.withValues(alpha: 0.08),
         centerTitle: true,
         titleTextStyle: GoogleFonts.inter(
           fontSize: 18,
@@ -60,7 +60,7 @@ class AppTheme {
         ),
         iconTheme: const IconThemeData(color: textPrimaryLight),
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         elevation: 0,
         color: bgLightSurface,
         shape: RoundedRectangleBorder(
@@ -81,9 +81,9 @@ class AppTheme {
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          backgroundColor: primaryGreen.withOpacity(0.06),
+          backgroundColor: primaryGreen.withValues(alpha: 0.06),
           foregroundColor: primaryGreen,
-          side: BorderSide(color: primaryGreen.withOpacity(0.20), width: 1.0),
+          side: BorderSide(color: primaryGreen.withValues(alpha: 0.20), width: 1.0),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           textStyle: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w600),
@@ -118,7 +118,7 @@ class AppTheme {
         labelStyle: GoogleFonts.inter(color: textSecondaryLight, fontSize: 14),
         hintStyle: GoogleFonts.inter(color: textHintLight, fontSize: 14),
       ),
-      dialogTheme: DialogTheme(
+      dialogTheme: DialogThemeData(
         backgroundColor: bgLightSurface,
         elevation: 8,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),

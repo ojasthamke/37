@@ -162,7 +162,7 @@ class CategoriesScreen extends ConsumerWidget {
                   margin: const EdgeInsets.only(bottom: 12),
                   child: ListTile(
                     leading: CircleAvatar(
-                      backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
+                      backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.1),
                       child: Icon(Icons.label_rounded, color: theme.colorScheme.primary),
                     ),
                     title: Text(

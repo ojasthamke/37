@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../customer/customer_provider.dart';
+import '../../core/services/admin_push_service.dart';
 
 class NotificationsScreen extends ConsumerStatefulWidget {
   const NotificationsScreen({super.key});
@@ -62,13 +63,34 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
       _isSending = true;
     });
 
+    final title = _titleController.text.trim();
+    final body = _bodyController.text.trim();
+    final customerId = _selectedCustomerId;
+
     try {
       final client = Supabase.instance.client;
+      
+      // 1. Insert into notifications history table (for in-app history)
       await client.from('notifications').insert({
-        'title': _titleController.text.trim(),
-        'body': _bodyController.text.trim(),
-        'customer_id': _selectedCustomerId,
+        'title': title,
+        'body': body,
+        'customer_id': customerId,
+        'created_at': DateTime.now().toUtc().toIso8601String(),
       });
+
+      // 2. DIRECT FCM HTTP v1 PUSH TO GOOGLE (Guaranteed delivery when app is closed!)
+      if (customerId != null && customerId.isNotEmpty) {
+        await AdminPushService.instance.sendToCustomer(
+          customerId: customerId,
+          title: title,
+          body: body,
+        );
+      } else {
+        await AdminPushService.instance.broadcastToAllCustomers(
+          title: title,
+          body: body,
+        );
+      }
 
       _titleController.clear();
       _bodyController.clear();
@@ -79,7 +101,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Notification sent successfully!'),
+          content: Text('Push notification delivered successfully to customer devices!'),
           backgroundColor: Colors.green,
         ),
       );
@@ -184,7 +206,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                             .toList();
 
                         return DropdownButtonFormField<String?>(
-                          value: _selectedCustomerId,
+                          initialValue: _selectedCustomerId,
                           decoration: const InputDecoration(
                             labelText: 'Send To',
                             border: OutlineInputBorder(),

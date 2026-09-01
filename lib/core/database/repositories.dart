@@ -41,6 +41,11 @@ abstract class ProductRepository {
     String dosageInfo = '',
     String bestBefore = '',
     String packDate = '',
+    double orderNowPrice = 0.0,
+    double orderNowMrp = 0.0,
+    double orderNowStock = 0.0,
+    double orderNowCostPrice = 0.0,
+    bool orderNowIsAvailable = true,
   });
   Future<void> updateProduct({
     required String id,
@@ -65,10 +70,16 @@ abstract class ProductRepository {
     String dosageInfo = '',
     String bestBefore = '',
     String packDate = '',
+    double? orderNowPrice,
+    double? orderNowMrp,
+    double? orderNowStock,
+    double? orderNowCostPrice,
+    bool? orderNowIsAvailable,
   });
   Future<void> deleteProduct(String id);
   Future<void> toggleProduct(String id, bool isEnabled);
   Future<void> toggleAvailability(String id, bool isAvailable);
+  Future<void> toggleOrderNowAvailability(String id, bool isAvailable);
 }
 
 abstract class CustomerRepository {
@@ -220,6 +231,11 @@ class SQLiteProductRepository implements ProductRepository {
       if (p['price'] != null) {
         mapped['price'] = (p['price'] as num).toDouble();
       }
+      mapped['order_now_stock'] = (p['order_now_stock'] as num?)?.toDouble() ?? 0.0;
+      mapped['order_now_price'] = (p['order_now_price'] as num?)?.toDouble() ?? 0.0;
+      mapped['order_now_mrp'] = (p['order_now_mrp'] as num?)?.toDouble() ?? 0.0;
+      mapped['order_now_cost_price'] = (p['order_now_cost_price'] as num?)?.toDouble() ?? 0.0;
+      mapped['order_now_is_available'] = p['order_now_is_available'] == null ? true : (p['order_now_is_available'] == true || p['order_now_is_available'] == 1);
       return mapped;
     }).toList();
   }
@@ -247,6 +263,11 @@ class SQLiteProductRepository implements ProductRepository {
     String dosageInfo = '',
     String bestBefore = '',
     String packDate = '',
+    double orderNowPrice = 0.0,
+    double orderNowMrp = 0.0,
+    double orderNowStock = 0.0,
+    double orderNowCostPrice = 0.0,
+    bool orderNowIsAvailable = true,
   }) async {
     final db = await _dbHelper.database;
     final encodedDesc = json.encode({
@@ -276,6 +297,11 @@ class SQLiteProductRepository implements ProductRepository {
       'unit': unit,
       'is_available': isAvailable ? 1 : 0,
       'is_enabled': isEnabled ? 1 : 0,
+      'order_now_price': orderNowPrice,
+      'order_now_mrp': orderNowMrp,
+      'order_now_stock': orderNowStock,
+      'order_now_cost_price': orderNowCostPrice,
+      'order_now_is_available': orderNowIsAvailable ? 1 : 0,
       'created_at': DateTime.now().toIso8601String(),
     });
   }
@@ -304,6 +330,11 @@ class SQLiteProductRepository implements ProductRepository {
     String dosageInfo = '',
     String bestBefore = '',
     String packDate = '',
+    double? orderNowPrice,
+    double? orderNowMrp,
+    double? orderNowStock,
+    double? orderNowCostPrice,
+    bool? orderNowIsAvailable,
   }) async {
     final db = await _dbHelper.database;
     final encodedDesc = json.encode({
@@ -333,6 +364,11 @@ class SQLiteProductRepository implements ProductRepository {
       'is_available': isAvailable ? 1 : 0,
       'is_enabled': isEnabled ? 1 : 0,
     };
+    if (orderNowPrice != null) updateData['order_now_price'] = orderNowPrice;
+    if (orderNowMrp != null) updateData['order_now_mrp'] = orderNowMrp;
+    if (orderNowStock != null) updateData['order_now_stock'] = orderNowStock;
+    if (orderNowCostPrice != null) updateData['order_now_cost_price'] = orderNowCostPrice;
+    if (orderNowIsAvailable != null) updateData['order_now_is_available'] = orderNowIsAvailable ? 1 : 0;
     if (imagePath != null) {
       updateData['image_path'] = imagePath;
     }
@@ -371,6 +407,17 @@ class SQLiteProductRepository implements ProductRepository {
     await db.update(
       'products',
       {'is_available': isAvailable ? 1 : 0},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  @override
+  Future<void> toggleOrderNowAvailability(String id, bool isAvailable) async {
+    final db = await _dbHelper.database;
+    await db.update(
+      'products',
+      {'order_now_is_available': isAvailable ? 1 : 0},
       where: 'id = ?',
       whereArgs: [id],
     );
@@ -455,7 +502,7 @@ class SQLiteOrderRepository implements OrderRepository {
     if (preordersOnly) {
       whereClause = "orders.order_type = 'Pre-Order' AND date(orders.order_taking_date) > date('now')";
     } else {
-      whereClause = "(orders.order_type = 'Normal' OR orders.order_type IS NULL OR (orders.order_type = 'Pre-Order' AND date(orders.order_taking_date) <= date('now')))";
+      whereClause = "(orders.order_type = 'Normal' OR orders.order_type IS NULL OR orders.order_type = 'Quick Order' OR (orders.order_type = 'Pre-Order' AND date(orders.order_taking_date) <= date('now')))";
     }
 
     if (status != null && status != 'All') {
@@ -651,6 +698,11 @@ class SupabaseProductRepository implements ProductRepository {
       if (p['price'] != null) {
         mapped['price'] = (p['price'] as num).toDouble();
       }
+      mapped['order_now_stock'] = (p['order_now_stock'] as num?)?.toDouble() ?? 0.0;
+      mapped['order_now_price'] = (p['order_now_price'] as num?)?.toDouble() ?? 0.0;
+      mapped['order_now_mrp'] = (p['order_now_mrp'] as num?)?.toDouble() ?? 0.0;
+      mapped['order_now_cost_price'] = (p['order_now_cost_price'] as num?)?.toDouble() ?? 0.0;
+      mapped['order_now_is_available'] = p['order_now_is_available'] == null ? true : (p['order_now_is_available'] == true || p['order_now_is_available'] == 1);
       return mapped;
     }).toList();
   }
@@ -678,6 +730,11 @@ class SupabaseProductRepository implements ProductRepository {
     String dosageInfo = '',
     String bestBefore = '',
     String packDate = '',
+    double orderNowPrice = 0.0,
+    double orderNowMrp = 0.0,
+    double orderNowStock = 0.0,
+    double orderNowCostPrice = 0.0,
+    bool orderNowIsAvailable = true,
   }) async {
     final encodedDesc = json.encode({
       'text': description,
@@ -708,6 +765,11 @@ class SupabaseProductRepository implements ProductRepository {
       'unit': unit,
       'is_available': isAvailable,
       'is_enabled': isEnabled,
+      'order_now_price': orderNowPrice,
+      'order_now_mrp': orderNowMrp,
+      'order_now_stock': orderNowStock,
+      'order_now_cost_price': orderNowCostPrice,
+      'order_now_is_available': orderNowIsAvailable,
     });
   }
 
@@ -735,6 +797,11 @@ class SupabaseProductRepository implements ProductRepository {
     String dosageInfo = '',
     String bestBefore = '',
     String packDate = '',
+    double? orderNowPrice,
+    double? orderNowMrp,
+    double? orderNowStock,
+    double? orderNowCostPrice,
+    bool? orderNowIsAvailable,
   }) async {
     // Fetch current product to merge other fields
     String mergedDescription = json.encode({
@@ -792,6 +859,11 @@ class SupabaseProductRepository implements ProductRepository {
       'is_available': isAvailable,
       'is_enabled': isEnabled,
     };
+    if (orderNowPrice != null) updateData['order_now_price'] = orderNowPrice;
+    if (orderNowMrp != null) updateData['order_now_mrp'] = orderNowMrp;
+    if (orderNowStock != null) updateData['order_now_stock'] = orderNowStock;
+    if (orderNowCostPrice != null) updateData['order_now_cost_price'] = orderNowCostPrice;
+    if (orderNowIsAvailable != null) updateData['order_now_is_available'] = orderNowIsAvailable;
     if (imagePath != null) {
       updateData['image_path'] = imagePath;
     }
@@ -818,6 +890,13 @@ class SupabaseProductRepository implements ProductRepository {
   Future<void> toggleAvailability(String id, bool isAvailable) async {
     await _client.from('products').update({
       'is_available': isAvailable,
+    }).eq('id', id);
+  }
+
+  @override
+  Future<void> toggleOrderNowAvailability(String id, bool isAvailable) async {
+    await _client.from('products').update({
+      'order_now_is_available': isAvailable,
     }).eq('id', id);
   }
 }
@@ -891,7 +970,7 @@ class SupabaseOrderRepository implements OrderRepository {
     if (preordersOnly) {
       query = query.eq('order_type', 'Pre-Order').gt('order_taking_date', todayStr);
     } else {
-      query = query.or('order_type.eq.Normal,order_type.is.null,and(order_type.eq.Pre-Order,order_taking_date.lte.$todayStr)');
+      query = query.or('order_type.eq.Normal,order_type.is.null,order_type.eq.Quick Order,and(order_type.eq.Pre-Order,order_taking_date.lte.$todayStr)');
     }
 
     if (status != null && status != 'All') {

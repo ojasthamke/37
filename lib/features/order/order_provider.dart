@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/database/providers.dart';
 import '../../core/services/notification_service.dart';
+import '../../core/services/admin_push_service.dart';
 
 class OrderFilter {
   final String status;
@@ -163,6 +164,25 @@ class OrderListNotifier extends StateNotifier<AsyncValue<List<Map<String, dynami
     try {
       final repo = _ref.read(orderRepositoryProvider);
       await repo.updateOrderStatus(orderId, newStatus);
+
+      // Dispatch high-priority push notification directly to customer device
+      try {
+        final order = await repo.getOrderById(orderId);
+        if (order != null) {
+          final customerId = (order['customer_id'] ?? '').toString();
+          final orderNo = (order['order_number'] ?? order['offline_order_no'] ?? '').toString();
+          if (customerId.isNotEmpty) {
+            await AdminPushService.instance.sendOrderStatusPush(
+              customerId: customerId,
+              orderNo: orderNo.isNotEmpty ? orderNo : orderId.substring(0, 8),
+              status: newStatus,
+            );
+          }
+        }
+      } catch (pushErr) {
+        debugPrint('Order status push dispatch notice: $pushErr');
+      }
+
       await refresh();
       // Also refresh the specific details if anyone is listening
       _ref.invalidate(orderDetailsProvider(orderId));

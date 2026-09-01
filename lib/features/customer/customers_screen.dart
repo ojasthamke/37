@@ -108,7 +108,7 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
                       ),
                       const SizedBox(height: 12),
                       DropdownButtonFormField<String>(
-                        value: selectedAreaId,
+                        initialValue: selectedAreaId,
                         decoration: const InputDecoration(labelText: 'Select Area'),
                         items: areas.map((a) => DropdownMenuItem(value: a['id'] as String, child: Text(a['name'] as String))).toList(),
                         onChanged: (val) async {
@@ -135,7 +135,7 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
                       ),
                       const SizedBox(height: 12),
                       DropdownButtonFormField<String>(
-                        value: selectedRoadId,
+                        initialValue: selectedRoadId,
                         decoration: const InputDecoration(labelText: 'Select Road'),
                         disabledHint: const Text('Select Area first'),
                         items: selectedAreaId == null ? [] : roads.map((r) => DropdownMenuItem(value: r['id'] as String, child: Text(r['name'] as String))).toList(),
@@ -162,7 +162,7 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
                       const SizedBox(height: 12),
                       if (selectedRoadId != null && subRoads.isNotEmpty) ...[
                         DropdownButtonFormField<String>(
-                          value: selectedSubRoadId,
+                          initialValue: selectedSubRoadId,
                           decoration: const InputDecoration(labelText: 'Select Sub-Road (Optional)'),
                           items: subRoads.map((sr) => DropdownMenuItem(value: sr['id'] as String, child: Text(sr['name'] as String))).toList(),
                           onChanged: (val) {
@@ -353,7 +353,7 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
                             );
                           },
                           leading: CircleAvatar(
-                            backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
+                            backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.1),
                             child: Icon(Icons.person_rounded, color: theme.colorScheme.primary),
                           ),
                           title: Text(

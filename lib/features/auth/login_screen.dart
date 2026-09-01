@@ -54,7 +54,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             padding: const EdgeInsets.all(24.0),
             child: Card(
               elevation: 4,
-              shadowColor: Colors.green.withOpacity(0.2),
+              shadowColor: Colors.green.withValues(alpha: 0.2),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),

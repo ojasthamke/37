@@ -79,7 +79,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
                     error: (err, stack) => const Text('Error'),
                     data: (categories) {
                       return DropdownButtonFormField<String?>(
-                        value: currentFilters.categoryId,
+                        initialValue: currentFilters.categoryId,
                         decoration: InputDecoration(
                           hintText: 'Filter Category',
                           border: OutlineInputBorder(
@@ -152,6 +152,9 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
                     itemBuilder: (context, index) {
                       final p = products[index];
                       final isAvailable = p['is_available'] == true || p['is_available'] == 1;
+                      final orderNowIsAvailable = p['order_now_is_available'] == null
+                          ? true
+                          : (p['order_now_is_available'] == true || p['order_now_is_available'] == 1);
                       final isEnabled = p['is_enabled'] == true || p['is_enabled'] == 1;
 
                       return Card(
@@ -165,7 +168,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
                                  width: 64,
                                  height: 64,
                                  decoration: BoxDecoration(
-                                   color: theme.colorScheme.primary.withOpacity(0.1),
+                                   color: theme.colorScheme.primary.withValues(alpha: 0.1),
                                    borderRadius: BorderRadius.circular(8),
                                  ),
                                  child: (p['image_path'] != null && (p['image_path'] as String).trim().isNotEmpty)
@@ -204,27 +207,22 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
                                       style: TextStyle(color: Colors.grey[600], fontSize: 12),
                                     ),
                                     const SizedBox(height: 4),
-                                    Row(
-                                      children: [
-                                        Text(
-                                          '₹${(p['price'] as num?)?.toStringAsFixed(2) ?? '0.00'} / ${p['unit']}',
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            color: theme.colorScheme.primary,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 12),
-                                        Text(
-                                          'Stock: ${p['stock'] ?? 0.0}',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w600,
-                                            color: ((p['stock'] as num?)?.toDouble() ?? 0.0) <= ((p['min_stock'] as num?)?.toDouble() ?? 0.0)
-                                                ? Colors.red
-                                                : Colors.grey[700],
-                                          ),
-                                        ),
-                                      ],
+                                    Text(
+                                      'Home: ₹${(p['price'] as num?)?.toStringAsFixed(2) ?? '0.00'} / ${p['unit']}  (Stock: ${p['stock'] ?? 0})',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        color: theme.colorScheme.primary,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      '⚡ NOW: ₹${(p['order_now_price'] != null && (p['order_now_price'] as num) > 0 ? (p['order_now_price'] as num).toStringAsFixed(2) : (p['price'] as num?)?.toStringAsFixed(2) ?? '0.00')}  (Stock: ${p['order_now_stock'] ?? 0})',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.orange.shade800,
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -235,46 +233,75 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
                                   Row(
+                                    mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      // Stock Availability text
                                       Text(
-                                        isAvailable ? 'In Stock' : 'Out of Stock',
+                                        isAvailable ? 'Home: In' : 'Home: Out',
                                         style: TextStyle(
-                                          fontSize: 12,
+                                          fontSize: 11,
                                           color: isAvailable ? Colors.green : Colors.red,
                                           fontWeight: FontWeight.bold,
                                         ),
                                       ),
-                                      Switch(
-                                        value: isAvailable,
-                                        onChanged: (val) {
-                                          ref.read(productListProvider.notifier).toggleAvailability(p['id'], val);
-                                        },
+                                      Transform.scale(
+                                        scale: 0.75,
+                                        child: Switch(
+                                          value: isAvailable,
+                                          onChanged: (val) {
+                                            ref.read(productListProvider.notifier).toggleAvailability(p['id'], val);
+                                          },
+                                        ),
                                       ),
                                     ],
                                   ),
                                   Row(
+                                    mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      // Enabled status text
+                                      Text(
+                                        orderNowIsAvailable ? '⚡ NOW: In' : '⚡ NOW: Out',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: orderNowIsAvailable ? Colors.orange.shade800 : Colors.red,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      Transform.scale(
+                                        scale: 0.75,
+                                        child: Switch(
+                                          value: orderNowIsAvailable,
+                                          activeThumbColor: Colors.orange,
+                                          onChanged: (val) {
+                                            ref.read(productListProvider.notifier).toggleOrderNowAvailability(p['id'], val);
+                                          },
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
                                       Text(
                                         isEnabled ? 'Enabled' : 'Disabled',
                                         style: TextStyle(
-                                          fontSize: 12,
+                                          fontSize: 11,
                                           color: isEnabled ? Colors.green : Colors.grey,
                                           fontWeight: FontWeight.bold,
                                         ),
                                       ),
-                                      Switch(
-                                        value: isEnabled,
-                                        onChanged: (val) {
-                                          ref.read(productListProvider.notifier).toggleProduct(p['id'], val);
-                                        },
+                                      Transform.scale(
+                                        scale: 0.75,
+                                        child: Switch(
+                                          value: isEnabled,
+                                          onChanged: (val) {
+                                            ref.read(productListProvider.notifier).toggleProduct(p['id'], val);
+                                          },
+                                        ),
                                       ),
                                     ],
                                   ),
                                 ],
                               ),
-                              const SizedBox(width: 16),
+                              const SizedBox(width: 8),
                               
                               // Action buttons
                               Column(

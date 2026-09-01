@@ -31,6 +31,23 @@ class NotificationService {
       initializationSettings,
       onDidReceiveNotificationResponse: _onSelectNotification,
     );
+
+    // Explicitly create NotificationChannel on Android OS (API 26+) with MAX importance
+    final androidPlugin = flutterLocalNotificationsPlugin
+        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+    if (androidPlugin != null) {
+      const AndroidNotificationChannel channel = AndroidNotificationChannel(
+        'aplibhaji_admin_channel',
+        'ApliBhaji Admin Alerts',
+        description: 'Notifications for ApliBhaji Admin',
+        importance: Importance.max,
+        playSound: true,
+        enableVibration: true,
+        showBadge: true,
+      );
+      await androidPlugin.createNotificationChannel(channel);
+      await androidPlugin.requestNotificationsPermission();
+    }
   }
 
   void _onSelectNotification(NotificationResponse response) {

@@ -31,14 +31,14 @@ class FloatingGlassAppBar extends StatelessWidget implements PreferredSizeWidget
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(24),
               color: (isDark ? const Color(0xFF1E293B) : Colors.white)
-                  .withOpacity(isDark ? 0.72 : 0.85),
+                  .withValues(alpha: isDark ? 0.72 : 0.85),
               border: Border.all(
-                color: isDark ? Colors.white12 : Colors.black.withOpacity(0.08),
+                color: isDark ? Colors.white12 : Colors.black.withValues(alpha: 0.08),
                 width: 1.2,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(isDark ? 0.3 : 0.06),
+                  color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.06),
                   blurRadius: 12,
                   offset: const Offset(0, 4),
                 ),
@@ -137,8 +137,8 @@ class AppScaffold extends StatelessWidget {
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    color1.withOpacity(isDark ? 0.35 : 0.22),
-                    color1.withOpacity(0),
+                    color1.withValues(alpha: isDark ? 0.35 : 0.22),
+                    color1.withValues(alpha: 0),
                   ],
                 ),
               ),
@@ -154,8 +154,8 @@ class AppScaffold extends StatelessWidget {
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    color2.withOpacity(isDark ? 0.30 : 0.18),
-                    color2.withOpacity(0),
+                    color2.withValues(alpha: isDark ? 0.30 : 0.18),
+                    color2.withValues(alpha: 0),
                   ],
                 ),
               ),
@@ -171,8 +171,8 @@ class AppScaffold extends StatelessWidget {
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    color3.withOpacity(isDark ? 0.25 : 0.15),
-                    color3.withOpacity(0),
+                    color3.withValues(alpha: isDark ? 0.25 : 0.15),
+                    color3.withValues(alpha: 0),
                   ],
                 ),
               ),
@@ -188,8 +188,8 @@ class AppScaffold extends StatelessWidget {
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    color4.withOpacity(isDark ? 0.20 : 0.12),
-                    color4.withOpacity(0),
+                    color4.withValues(alpha: isDark ? 0.20 : 0.12),
+                    color4.withValues(alpha: 0),
                   ],
                 ),
               ),

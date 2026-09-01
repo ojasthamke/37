@@ -64,8 +64,8 @@ class AppColors {
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
         colors: [
-          Colors.white.withOpacity(0.85),
-          Colors.white.withOpacity(0.50),
+          Colors.white.withValues(alpha: 0.85),
+          Colors.white.withValues(alpha: 0.50),
         ],
       );
 
@@ -73,8 +73,8 @@ class AppColors {
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
         colors: [
-          const Color(0xFF1E293B).withOpacity(0.65),
-          const Color(0xFF0F172A).withOpacity(0.35),
+          const Color(0xFF1E293B).withValues(alpha: 0.65),
+          const Color(0xFF0F172A).withValues(alpha: 0.35),
         ],
       );
 
@@ -82,8 +82,8 @@ class AppColors {
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
         colors: [
-          Colors.white.withOpacity(0.70),
-          Colors.white.withOpacity(0.15),
+          Colors.white.withValues(alpha: 0.70),
+          Colors.white.withValues(alpha: 0.15),
         ],
       );
 
@@ -91,20 +91,20 @@ class AppColors {
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
         colors: [
-          Colors.white.withOpacity(0.25),
-          Colors.white.withOpacity(0.05),
+          Colors.white.withValues(alpha: 0.25),
+          Colors.white.withValues(alpha: 0.05),
         ],
       );
 
   // Card Shadow
   static List<BoxShadow> get cardShadow => [
         BoxShadow(
-          color: Colors.black.withOpacity(0.06),
+          color: Colors.black.withValues(alpha: 0.06),
           blurRadius: 8,
           offset: const Offset(0, 2),
         ),
         BoxShadow(
-          color: Colors.black.withOpacity(0.04),
+          color: Colors.black.withValues(alpha: 0.04),
           blurRadius: 2,
           offset: const Offset(0, 1),
         ),
@@ -112,7 +112,7 @@ class AppColors {
 
   static List<BoxShadow> get elevatedShadow => [
         BoxShadow(
-          color: Colors.black.withOpacity(0.10),
+          color: Colors.black.withValues(alpha: 0.10),
           blurRadius: 16,
           offset: const Offset(0, 4),
         ),
@@ -147,15 +147,15 @@ class AppColors {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return BoxDecoration(
       borderRadius: BorderRadius.circular(12),
-      color: isDark ? primary.withOpacity(0.30) : primary,
+      color: isDark ? primary.withValues(alpha: 0.30) : primary,
       border: isDark
-          ? Border.all(color: primary.withOpacity(0.60), width: 1.2)
+          ? Border.all(color: primary.withValues(alpha: 0.60), width: 1.2)
           : null,
       boxShadow: isDark
           ? []
           : [
               BoxShadow(
-                color: primary.withOpacity(0.25),
+                color: primary.withValues(alpha: 0.25),
                 blurRadius: 6,
                 offset: const Offset(0, 2),
               ),
