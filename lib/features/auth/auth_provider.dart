@@ -19,16 +19,32 @@ class AuthState {
 
 class AuthNotifier extends StateNotifier<AuthState> {
   AuthNotifier() : super(AuthState(isAuthenticated: false, isLoading: true)) {
-    _initAuthListener();
+    _initAuth();
   }
 
-  void _initAuthListener() {
+  static const Set<String> _allowedAdminEmails = {
+    'admin@aplibhaji.com',
+    'ojast009@aplibhaji.com',
+    'ojasthamkes@gmail.com',
+    '8605780069@aplibhaji.com',
+    '90211070098@aplibhaji.com',
+  };
+
+  Future<void> _initAuth() async {
     try {
-      Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user != null) {
+        final isAdmin = await _verifyAdminUser(user);
+        state = AuthState(isAuthenticated: isAdmin, isLoading: false);
+      } else {
+        state = AuthState(isAuthenticated: false, isLoading: false);
+      }
+
+      Supabase.instance.client.auth.onAuthStateChange.listen((data) async {
         final user = data.session?.user;
-        final email = user?.email?.toLowerCase();
-        if (user != null && (email == 'admin@aplibhaji.com' || email == 'ojasthamkes@gmail.com')) {
-          state = AuthState(isAuthenticated: true, isLoading: false);
+        if (user != null) {
+          final isAdmin = await _verifyAdminUser(user);
+          state = AuthState(isAuthenticated: isAdmin, isLoading: false);
         } else {
           state = AuthState(isAuthenticated: false, isLoading: false);
         }
@@ -40,36 +56,62 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  Future<bool> login(String email, String password) async {
+  Future<bool> _verifyAdminUser(User user) async {
+    final email = user.email?.trim().toLowerCase() ?? '';
+    if (_allowedAdminEmails.contains(email)) {
+      return true;
+    }
+
+    try {
+      final res = await Supabase.instance.client
+          .from('admin_roles')
+          .select('role')
+          .eq('user_id', user.id)
+          .maybeSingle();
+      if (res != null && (res['role'] == 'admin' || res['role'] == 'superadmin')) {
+        return true;
+      }
+    } catch (_) {}
+
+    return false;
+  }
+
+  Future<bool> login(String inputIdentifier, String password) async {
     state = AuthState(isAuthenticated: false, isLoading: true);
     try {
+      var email = inputIdentifier.trim().toLowerCase();
+      if (!email.contains('@')) {
+        email = '$email@aplibhaji.com';
+      }
+
       final res = await Supabase.instance.client.auth.signInWithPassword(
-        email: email.trim(),
+        email: email,
         password: password,
       );
+
       if (res.user != null) {
-        final loggedInEmail = res.user!.email?.trim().toLowerCase() ?? email.trim().toLowerCase();
-        if (loggedInEmail == 'admin@aplibhaji.com' || loggedInEmail == 'ojasthamkes@gmail.com') {
+        final isAdmin = await _verifyAdminUser(res.user!);
+        if (isAdmin) {
           state = AuthState(isAuthenticated: true, isLoading: false);
           return true;
         } else {
-          // If customer tries to log in to admin app
           await Supabase.instance.client.auth.signOut();
           state = AuthState(
             isAuthenticated: false,
             isLoading: false,
-            error: 'Access denied: Unauthorized admin email ($loggedInEmail).',
+            error: 'Access denied: User ($email) does not have admin privileges.',
           );
           return false;
         }
       }
-      state = AuthState(isAuthenticated: false, isLoading: false, error: 'Authentication failed.');
+      state = AuthState(isAuthenticated: false, isLoading: false, error: 'Authentication failed. Please check credentials.');
       return false;
     } catch (e) {
+      final errorMsg = e.toString().replaceAll('AuthException: ', '');
       state = AuthState(
         isAuthenticated: false,
         isLoading: false,
-        error: e.toString().replaceAll('AuthException: ', ''),
+        error: errorMsg,
       );
       return false;
     }

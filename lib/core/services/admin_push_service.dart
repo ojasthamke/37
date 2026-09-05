@@ -92,6 +92,11 @@ MLv59suZ2ePGGJizLeScuGI=
       final targetKey = (targetToken != null && targetToken.isNotEmpty) ? 'token' : 'topic';
       final targetValue = (targetToken != null && targetToken.isNotEmpty) ? targetToken : (topic ?? 'all_customers');
 
+      final String cleanTitleTag = title.trim().toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '_');
+      final String collapseTag = (payload != null && payload.isNotEmpty)
+          ? 'ok_${payload.replaceAll(RegExp(r'[^a-z0-9_]'), '_')}'
+          : 'ok_$cleanTitleTag';
+
       final messagePayload = {
         'message': {
           targetKey: targetValue,
@@ -104,13 +109,16 @@ MLv59suZ2ePGGJizLeScuGI=
             'body': body,
             'click_action': 'FLUTTER_NOTIFICATION_CLICK',
             'payload': payload ?? '',
+            'tag': collapseTag,
             'timestamp': DateTime.now().millisecondsSinceEpoch.toString(),
           },
           'android': {
             'priority': 'high',
+            'collapse_key': collapseTag,
             'ttl': '86400s',
             'notification': {
               'channel_id': channelId ?? 'aplibhaji_customer_channel',
+              'tag': collapseTag,
               'sound': 'default',
               'default_sound': true,
               'default_vibrate_timings': true,
@@ -171,7 +179,7 @@ MLv59suZ2ePGGJizLeScuGI=
   }
 
   /// Sends targeted push notification for a specific customer
-  Future<void> sendToCustomer({
+  Future<bool> sendToCustomer({
     required String customerId,
     required String title,
     required String body,
@@ -195,24 +203,65 @@ MLv59suZ2ePGGJizLeScuGI=
 
       final token = cust?['fcm_token']?.toString();
       if (token != null && token.isNotEmpty) {
-        await sendDirectPush(
+        return await sendDirectPush(
           targetToken: token,
           title: title,
           body: body,
           payload: payload,
         );
       } else {
-        // Fallback to topic broadcast if no specific token found
-        await sendDirectPush(
-          topic: 'all_customers',
-          title: title,
-          body: body,
-          payload: payload,
-        );
+        // IMPORTANT: Never fallback to broadcast when sending to an individual customer!
+        debugPrint('AdminPushService: Customer $customerId has no active FCM token yet.');
+        return false;
       }
     } catch (e) {
       debugPrint('AdminPushService: sendToCustomer error: $e');
+      return false;
     }
+  }
+
+  /// Sends push to all customers belonging to a specific Area cleanly via FCM topic
+  Future<int> sendToArea({
+    required String areaId,
+    required String title,
+    required String body,
+    String? payload,
+  }) async {
+    int sentCount = 0;
+    try {
+      final sanitizedTopic = 'area_${areaId.replaceAll('-', '_')}';
+      // Broadcast to area FCM topic (reaches all customers in that area with zero duplication)
+      final success = await sendDirectPush(
+        topic: sanitizedTopic,
+        title: title,
+        body: body,
+        payload: payload,
+      );
+      if (success) sentCount = 1;
+    } catch (e) {
+      debugPrint('AdminPushService: sendToArea error: $e');
+    }
+    return sentCount;
+  }
+
+  /// Sends targeted push notification to multiple selected customers
+  Future<int> sendToMultipleCustomers({
+    required List<String> customerIds,
+    required String title,
+    required String body,
+    String? payload,
+  }) async {
+    int count = 0;
+    for (final id in customerIds) {
+      final sent = await sendToCustomer(
+        customerId: id,
+        title: title,
+        body: body,
+        payload: payload,
+      );
+      if (sent) count++;
+    }
+    return count;
   }
 
   /// Sends push when order status is updated

@@ -46,3 +46,7 @@ app.*.map.json
 android/key.properties
 *.jks
 *.keystore
+
+# Build cache and internal agents
+.agents/
+android/app/.cxx/

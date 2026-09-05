@@ -93,25 +93,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ),
                       const SizedBox(height: 32),
                       
-                      // Email Input
+                      // Email / Username / Phone Input
                       TextFormField(
                         controller: _usernameController,
                         keyboardType: TextInputType.emailAddress,
-                        autofillHints: const [AutofillHints.email],
+                        autofillHints: const [AutofillHints.email, AutofillHints.username],
                         decoration: InputDecoration(
-                          labelText: 'Email Address',
-                          prefixIcon: const Icon(Icons.email_outlined),
-                          hintText: 'e.g. admin@aplibhaji.com',
+                          labelText: 'Email Address / Username / Phone',
+                          prefixIcon: const Icon(Icons.person_outline),
+                          hintText: 'e.g. admin or admin@aplibhaji.com',
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
-                            return 'Please enter your email address';
-                          }
-                          if (!value.contains('@')) {
-                            return 'Please enter a valid email address';
+                            return 'Please enter your email, username, or phone';
                           }
                           return null;
                         },

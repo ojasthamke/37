@@ -79,7 +79,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
                     error: (err, stack) => const Text('Error'),
                     data: (categories) {
                       return DropdownButtonFormField<String?>(
-                        initialValue: currentFilters.categoryId,
+                        value: currentFilters.categoryId,
                         decoration: InputDecoration(
                           hintText: 'Filter Category',
                           border: OutlineInputBorder(
@@ -152,9 +152,6 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
                     itemBuilder: (context, index) {
                       final p = products[index];
                       final isAvailable = p['is_available'] == true || p['is_available'] == 1;
-                      final orderNowIsAvailable = p['order_now_is_available'] == null
-                          ? true
-                          : (p['order_now_is_available'] == true || p['order_now_is_available'] == 1);
                       final isEnabled = p['is_enabled'] == true || p['is_enabled'] == 1;
 
                       return Card(
@@ -208,20 +205,11 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
-                                      'Home: ₹${(p['price'] as num?)?.toStringAsFixed(2) ?? '0.00'} / ${p['unit']}  (Stock: ${p['stock'] ?? 0})',
+                                      'Price: ₹${(p['price'] as num?)?.toStringAsFixed(2) ?? '0.00'} / ${p['unit']}  (Stock: ${p['stock'] ?? 0})',
                                       style: TextStyle(
                                         fontSize: 12,
                                         fontWeight: FontWeight.w600,
                                         color: theme.colorScheme.primary,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      '⚡ NOW: ₹${(p['order_now_price'] != null && (p['order_now_price'] as num) > 0 ? (p['order_now_price'] as num).toStringAsFixed(2) : (p['price'] as num?)?.toStringAsFixed(2) ?? '0.00')}  (Stock: ${p['order_now_stock'] ?? 0})',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.orange.shade800,
                                       ),
                                     ),
                                   ],
@@ -236,7 +224,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       Text(
-                                        isAvailable ? 'Home: In' : 'Home: Out',
+                                        isAvailable ? 'In Stock' : 'Out of Stock',
                                         style: TextStyle(
                                           fontSize: 11,
                                           color: isAvailable ? Colors.green : Colors.red,
@@ -249,29 +237,6 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
                                           value: isAvailable,
                                           onChanged: (val) {
                                             ref.read(productListProvider.notifier).toggleAvailability(p['id'], val);
-                                          },
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Text(
-                                        orderNowIsAvailable ? '⚡ NOW: In' : '⚡ NOW: Out',
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          color: orderNowIsAvailable ? Colors.orange.shade800 : Colors.red,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      Transform.scale(
-                                        scale: 0.75,
-                                        child: Switch(
-                                          value: orderNowIsAvailable,
-                                          activeThumbColor: Colors.orange,
-                                          onChanged: (val) {
-                                            ref.read(productListProvider.notifier).toggleOrderNowAvailability(p['id'], val);
                                           },
                                         ),
                                       ),

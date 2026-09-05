@@ -113,11 +113,6 @@ class ProductListNotifier extends StateNotifier<AsyncValue<List<Map<String, dyna
     String dosageInfo = '',
     String bestBefore = '',
     String packDate = '',
-    double orderNowPrice = 0.0,
-    double orderNowMrp = 0.0,
-    double orderNowStock = 0.0,
-    double orderNowCostPrice = 0.0,
-    bool orderNowIsAvailable = true,
   }) async {
     try {
       final repo = _ref.read(productRepositoryProvider);
@@ -143,11 +138,6 @@ class ProductListNotifier extends StateNotifier<AsyncValue<List<Map<String, dyna
         dosageInfo: dosageInfo,
         bestBefore: bestBefore,
         packDate: packDate,
-        orderNowPrice: orderNowPrice,
-        orderNowMrp: orderNowMrp,
-        orderNowStock: orderNowStock,
-        orderNowCostPrice: orderNowCostPrice,
-        orderNowIsAvailable: orderNowIsAvailable,
       );
       await refresh();
       return true;
@@ -179,11 +169,6 @@ class ProductListNotifier extends StateNotifier<AsyncValue<List<Map<String, dyna
     String dosageInfo = '',
     String bestBefore = '',
     String packDate = '',
-    double? orderNowPrice,
-    double? orderNowMrp,
-    double? orderNowStock,
-    double? orderNowCostPrice,
-    bool? orderNowIsAvailable,
   }) async {
     try {
       final repo = _ref.read(productRepositoryProvider);
@@ -210,11 +195,6 @@ class ProductListNotifier extends StateNotifier<AsyncValue<List<Map<String, dyna
         dosageInfo: dosageInfo,
         bestBefore: bestBefore,
         packDate: packDate,
-        orderNowPrice: orderNowPrice,
-        orderNowMrp: orderNowMrp,
-        orderNowStock: orderNowStock,
-        orderNowCostPrice: orderNowCostPrice,
-        orderNowIsAvailable: orderNowIsAvailable,
       );
       await refresh();
       return true;
@@ -259,24 +239,6 @@ class ProductListNotifier extends StateNotifier<AsyncValue<List<Map<String, dyna
         final updated = products.map((prod) {
           if (prod['id'] == id) {
             return {...prod, 'is_available': isAvailable};
-          }
-          return prod;
-        }).toList();
-        state = AsyncValue.data(updated);
-      });
-    } catch (e) {
-      await refresh();
-    }
-  }
-
-  Future<void> toggleOrderNowAvailability(String id, bool isAvailable) async {
-    try {
-      final repo = _ref.read(productRepositoryProvider);
-      await repo.toggleOrderNowAvailability(id, isAvailable);
-      state.whenData((products) {
-        final updated = products.map((prod) {
-          if (prod['id'] == id) {
-            return {...prod, 'order_now_is_available': isAvailable};
           }
           return prod;
         }).toList();

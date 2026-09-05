@@ -41,11 +41,6 @@ abstract class ProductRepository {
     String dosageInfo = '',
     String bestBefore = '',
     String packDate = '',
-    double orderNowPrice = 0.0,
-    double orderNowMrp = 0.0,
-    double orderNowStock = 0.0,
-    double orderNowCostPrice = 0.0,
-    bool orderNowIsAvailable = true,
   });
   Future<void> updateProduct({
     required String id,
@@ -70,16 +65,10 @@ abstract class ProductRepository {
     String dosageInfo = '',
     String bestBefore = '',
     String packDate = '',
-    double? orderNowPrice,
-    double? orderNowMrp,
-    double? orderNowStock,
-    double? orderNowCostPrice,
-    bool? orderNowIsAvailable,
   });
   Future<void> deleteProduct(String id);
   Future<void> toggleProduct(String id, bool isEnabled);
   Future<void> toggleAvailability(String id, bool isAvailable);
-  Future<void> toggleOrderNowAvailability(String id, bool isAvailable);
 }
 
 abstract class CustomerRepository {
@@ -147,7 +136,10 @@ class SQLiteCategoryRepository implements CategoryRepository {
   @override
   Future<void> deleteCategory(String id) async {
     final db = await _dbHelper.database;
-    await db.delete('categories', where: 'id = ?', whereArgs: [id]);
+    await db.transaction((txn) async {
+      await txn.update('products', {'category_id': null}, where: 'category_id = ?', whereArgs: [id]);
+      await txn.delete('categories', where: 'id = ?', whereArgs: [id]);
+    });
   }
 
   @override
@@ -169,61 +161,48 @@ class SQLiteProductRepository implements ProductRepository {
   @override
   Future<List<Map<String, dynamic>>> getProducts({String? search, String? categoryId}) async {
     final db = await _dbHelper.database;
-    
-    String whereClause = '';
-    List<dynamic> whereArgs = [];
-
-    if (search != null && search.isNotEmpty) {
-      whereClause += '(products.name LIKE ? OR products.description LIKE ?)';
-      whereArgs.add('%$search%');
-      whereArgs.add('%$search%');
-    }
+    String query = '''
+      SELECT p.*, c.name as category_name 
+      FROM products p 
+      LEFT JOIN categories c ON p.category_id = c.id
+      WHERE 1=1
+    ''';
+    List<dynamic> args = [];
 
     if (categoryId != null && categoryId.isNotEmpty) {
-      if (whereClause.isNotEmpty) whereClause += ' AND ';
-      whereClause += 'products.category_id = ?';
-      whereArgs.add(categoryId);
+      query += ' AND p.category_id = ?';
+      args.add(categoryId);
     }
 
-    final query = '''
-      SELECT products.*, categories.name as category_name 
-      FROM products 
-      LEFT JOIN categories ON products.category_id = categories.id
-      ${whereClause.isNotEmpty ? 'WHERE $whereClause' : ''}
-      ORDER BY products.name ASC
-    ''';
+    if (search != null && search.isNotEmpty) {
+      query += ' AND p.name LIKE ?';
+      args.add('%$search%');
+    }
 
-    final List<Map<String, dynamic>> res = await db.rawQuery(query, whereArgs);
-    return res.map((p) {
-      final Map<String, dynamic> mapped = Map.from(p);
+    query += ' ORDER BY p.name ASC';
+
+    final result = await db.rawQuery(query, args);
+    return result.map((p) {
+      final mapped = Map<String, dynamic>.from(p);
       final desc = p['description'] as String? ?? '';
       if (desc.trim().startsWith('{') && desc.trim().endsWith('}')) {
         try {
-          final Map<String, dynamic> decoded = json.decode(desc);
-          mapped['description'] = decoded['text'] as String? ?? '';
-          mapped['cost_price'] = (decoded['cost_price'] as num?)?.toDouble() ?? 0.0;
-          mapped['market_price'] = ((decoded['market_price'] ?? decoded['mrp']) as num?)?.toDouble() ?? 0.0;
-          mapped['stock'] = (decoded['stock'] as num?)?.toDouble() ?? 0.0;
-          mapped['min_stock'] = (decoded['min_stock'] as num?)?.toDouble() ?? 0.0;
-          mapped['barcode'] = decoded['barcode'] as String? ?? '';
-          mapped['weight_per_piece'] = (decoded['weight_per_piece'] as num?)?.toDouble() ?? 0.25;
-          mapped['sequence_no'] = decoded['sequence_no'] as int? ?? decoded['serial_no'] as int? ?? 0;
-          mapped['expiry_date'] = decoded['expiry_date'] as String? ?? '';
-          mapped['batch_number'] = decoded['batch_number'] as String? ?? '';
-          mapped['prescription_required'] = decoded['prescription_required'] as bool? ?? false;
-          mapped['dosage_info'] = decoded['dosage_info'] as String? ?? '';
-          mapped['best_before'] = decoded['best_before'] as String? ?? '';
-          mapped['pack_date'] = decoded['pack_date'] as String? ?? '';
-        } catch (_) {
-          mapped['description'] = desc;
-        }
-      } else {
-        mapped['description'] = desc;
-      }
-
-      // Override from standalone db columns if present
-      if (p['mrp'] != null) {
-        mapped['market_price'] = (p['mrp'] as num).toDouble();
+          final Map<String, dynamic> jsonDesc = json.decode(desc);
+          mapped['description'] = jsonDesc['text'] ?? '';
+          mapped['cost_price'] = (jsonDesc['cost_price'] as num?)?.toDouble() ?? 0.0;
+          mapped['market_price'] = (jsonDesc['market_price'] as num?)?.toDouble() ?? 0.0;
+          mapped['stock'] = (jsonDesc['stock'] as num?)?.toDouble() ?? 0.0;
+          mapped['min_stock'] = (jsonDesc['min_stock'] as num?)?.toDouble() ?? 0.0;
+          mapped['barcode'] = jsonDesc['barcode'] ?? '';
+          mapped['weight_per_piece'] = (jsonDesc['weight_per_piece'] as num?)?.toDouble() ?? 0.25;
+          mapped['sequence_no'] = jsonDesc['sequence_no'] ?? 0;
+          mapped['expiry_date'] = jsonDesc['expiry_date'] ?? '';
+          mapped['batch_number'] = jsonDesc['batch_number'] ?? '';
+          mapped['prescription_required'] = jsonDesc['prescription_required'] ?? false;
+          mapped['dosage_info'] = jsonDesc['dosage_info'] ?? '';
+          mapped['best_before'] = jsonDesc['best_before'] ?? '';
+          mapped['pack_date'] = jsonDesc['pack_date'] ?? '';
+        } catch (_) {}
       }
       if (p['stock'] != null) {
         mapped['stock'] = (p['stock'] as num).toDouble();
@@ -231,11 +210,6 @@ class SQLiteProductRepository implements ProductRepository {
       if (p['price'] != null) {
         mapped['price'] = (p['price'] as num).toDouble();
       }
-      mapped['order_now_stock'] = (p['order_now_stock'] as num?)?.toDouble() ?? 0.0;
-      mapped['order_now_price'] = (p['order_now_price'] as num?)?.toDouble() ?? 0.0;
-      mapped['order_now_mrp'] = (p['order_now_mrp'] as num?)?.toDouble() ?? 0.0;
-      mapped['order_now_cost_price'] = (p['order_now_cost_price'] as num?)?.toDouble() ?? 0.0;
-      mapped['order_now_is_available'] = p['order_now_is_available'] == null ? true : (p['order_now_is_available'] == true || p['order_now_is_available'] == 1);
       return mapped;
     }).toList();
   }
@@ -263,11 +237,6 @@ class SQLiteProductRepository implements ProductRepository {
     String dosageInfo = '',
     String bestBefore = '',
     String packDate = '',
-    double orderNowPrice = 0.0,
-    double orderNowMrp = 0.0,
-    double orderNowStock = 0.0,
-    double orderNowCostPrice = 0.0,
-    bool orderNowIsAvailable = true,
   }) async {
     final db = await _dbHelper.database;
     final encodedDesc = json.encode({
@@ -297,11 +266,6 @@ class SQLiteProductRepository implements ProductRepository {
       'unit': unit,
       'is_available': isAvailable ? 1 : 0,
       'is_enabled': isEnabled ? 1 : 0,
-      'order_now_price': orderNowPrice,
-      'order_now_mrp': orderNowMrp,
-      'order_now_stock': orderNowStock,
-      'order_now_cost_price': orderNowCostPrice,
-      'order_now_is_available': orderNowIsAvailable ? 1 : 0,
       'created_at': DateTime.now().toIso8601String(),
     });
   }
@@ -330,11 +294,6 @@ class SQLiteProductRepository implements ProductRepository {
     String dosageInfo = '',
     String bestBefore = '',
     String packDate = '',
-    double? orderNowPrice,
-    double? orderNowMrp,
-    double? orderNowStock,
-    double? orderNowCostPrice,
-    bool? orderNowIsAvailable,
   }) async {
     final db = await _dbHelper.database;
     final encodedDesc = json.encode({
@@ -364,11 +323,6 @@ class SQLiteProductRepository implements ProductRepository {
       'is_available': isAvailable ? 1 : 0,
       'is_enabled': isEnabled ? 1 : 0,
     };
-    if (orderNowPrice != null) updateData['order_now_price'] = orderNowPrice;
-    if (orderNowMrp != null) updateData['order_now_mrp'] = orderNowMrp;
-    if (orderNowStock != null) updateData['order_now_stock'] = orderNowStock;
-    if (orderNowCostPrice != null) updateData['order_now_cost_price'] = orderNowCostPrice;
-    if (orderNowIsAvailable != null) updateData['order_now_is_available'] = orderNowIsAvailable ? 1 : 0;
     if (imagePath != null) {
       updateData['image_path'] = imagePath;
     }
@@ -407,17 +361,6 @@ class SQLiteProductRepository implements ProductRepository {
     await db.update(
       'products',
       {'is_available': isAvailable ? 1 : 0},
-      where: 'id = ?',
-      whereArgs: [id],
-    );
-  }
-
-  @override
-  Future<void> toggleOrderNowAvailability(String id, bool isAvailable) async {
-    final db = await _dbHelper.database;
-    await db.update(
-      'products',
-      {'order_now_is_available': isAvailable ? 1 : 0},
       where: 'id = ?',
       whereArgs: [id],
     );
@@ -698,11 +641,6 @@ class SupabaseProductRepository implements ProductRepository {
       if (p['price'] != null) {
         mapped['price'] = (p['price'] as num).toDouble();
       }
-      mapped['order_now_stock'] = (p['order_now_stock'] as num?)?.toDouble() ?? 0.0;
-      mapped['order_now_price'] = (p['order_now_price'] as num?)?.toDouble() ?? 0.0;
-      mapped['order_now_mrp'] = (p['order_now_mrp'] as num?)?.toDouble() ?? 0.0;
-      mapped['order_now_cost_price'] = (p['order_now_cost_price'] as num?)?.toDouble() ?? 0.0;
-      mapped['order_now_is_available'] = p['order_now_is_available'] == null ? true : (p['order_now_is_available'] == true || p['order_now_is_available'] == 1);
       return mapped;
     }).toList();
   }
@@ -730,11 +668,6 @@ class SupabaseProductRepository implements ProductRepository {
     String dosageInfo = '',
     String bestBefore = '',
     String packDate = '',
-    double orderNowPrice = 0.0,
-    double orderNowMrp = 0.0,
-    double orderNowStock = 0.0,
-    double orderNowCostPrice = 0.0,
-    bool orderNowIsAvailable = true,
   }) async {
     final encodedDesc = json.encode({
       'text': description,
@@ -765,11 +698,6 @@ class SupabaseProductRepository implements ProductRepository {
       'unit': unit,
       'is_available': isAvailable,
       'is_enabled': isEnabled,
-      'order_now_price': orderNowPrice,
-      'order_now_mrp': orderNowMrp,
-      'order_now_stock': orderNowStock,
-      'order_now_cost_price': orderNowCostPrice,
-      'order_now_is_available': orderNowIsAvailable,
     });
   }
 
@@ -797,11 +725,6 @@ class SupabaseProductRepository implements ProductRepository {
     String dosageInfo = '',
     String bestBefore = '',
     String packDate = '',
-    double? orderNowPrice,
-    double? orderNowMrp,
-    double? orderNowStock,
-    double? orderNowCostPrice,
-    bool? orderNowIsAvailable,
   }) async {
     // Fetch current product to merge other fields
     String mergedDescription = json.encode({
@@ -859,11 +782,6 @@ class SupabaseProductRepository implements ProductRepository {
       'is_available': isAvailable,
       'is_enabled': isEnabled,
     };
-    if (orderNowPrice != null) updateData['order_now_price'] = orderNowPrice;
-    if (orderNowMrp != null) updateData['order_now_mrp'] = orderNowMrp;
-    if (orderNowStock != null) updateData['order_now_stock'] = orderNowStock;
-    if (orderNowCostPrice != null) updateData['order_now_cost_price'] = orderNowCostPrice;
-    if (orderNowIsAvailable != null) updateData['order_now_is_available'] = orderNowIsAvailable;
     if (imagePath != null) {
       updateData['image_path'] = imagePath;
     }
@@ -890,13 +808,6 @@ class SupabaseProductRepository implements ProductRepository {
   Future<void> toggleAvailability(String id, bool isAvailable) async {
     await _client.from('products').update({
       'is_available': isAvailable,
-    }).eq('id', id);
-  }
-
-  @override
-  Future<void> toggleOrderNowAvailability(String id, bool isAvailable) async {
-    await _client.from('products').update({
-      'order_now_is_available': isAvailable,
     }).eq('id', id);
   }
 }
